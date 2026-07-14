@@ -1,0 +1,54 @@
+{
+  "name": "signlink-digital-signage-player",
+  "version": "1.0.0",
+  "description": "Unattended cross-platform digital signage player",
+  "main": "electron/main.cjs",
+  "author": "SignLink",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build:windows": "electron-builder --win nsis --x64 --config.directories.output=output/windows",
+    "build:brightsign": "node scripts/package-brightsign.mjs",
+    "build:linux": "electron-builder --linux AppImage --x64 --config.directories.output=output/linux",
+    "build:mac": "electron-builder --mac dmg --universal --config.directories.output=output/macos"
+  },
+  "build": {
+    "appId": "io.signlink.player",
+    "productName": "SignLink Player",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "index.html",
+      "app.js",
+      "styles.css",
+      "config.json",
+      "manifest.json",
+      "assets/**/*",
+      "media/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.video",
+      "identity": null
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "AudioVideo"
+    }
+  },
+  "devDependencies": {
+    "archiver": "^8.0.0",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "SignLink Digital Signage Player",
+  "version": "1.0.0",
+  "deviceId": "SL-PLAYER-001",
+  "serverUrl": "https://api.signlink.io/v1",
+  "refreshIntervalMs": 60000,
+  "volume": 80,
+  "orientation": "landscape",
+  "playlist": [
+    {
+      "id": "1",
+      "type": "video",
+      "src": "media/videos/default-video.mp4",
+      "default": true,
+      "muted": true,
+      "loop": true
+    }
+  ]
+}

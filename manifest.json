@@ -1,0 +1,16 @@
+{
+  "short_name": "SignLink",
+  "name": "SignLink Digital Signage Player",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0d0915",
+  "theme_color": "#6366f1",
+  "display": "fullscreen",
+  "orientation": "landscape"
+}
