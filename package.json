@@ -15,7 +15,7 @@
   },
   "build": {
     "appId": "io.signlink.player",
-    "productName": "SignLink Player",
+    "productName": "reds-player",
     "asar": true,
     "icon": "assets/logo.png",
     "files": [
