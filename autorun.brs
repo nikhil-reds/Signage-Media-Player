@@ -1,37 +1,42 @@
 Sub Main()
-    print "Starting SignLink Player Autorun Script"
-    
-    ' Set up video mode (Landscape Full HD)
-    vm = CreateObject("roVideoMode")
-    vm.SetMode("1920x1080x60p")
-    
-    ' Create a message port for receiving events
-    mp = CreateObject("roMessagePort")
-    
-    ' HTML Widget configuration
-    ' Assuming player files are placed on the root of the SD card
-    config = {
-        url: "file:///SD:/index.html",
-        javascript_enabled: true,
-        security_rules: {
-            file_access: "all",
-            cross_origin_access: "all"
-        },
-        enable_web_inspector: true
-    }
-    
-    ' Create the HTML Widget to fit the screen
-    htmlRect = CreateObject("roRectangle", 0, 0, 1920, 1080)
-    htmlWidget = CreateObject("roHtmlWidget", htmlRect, config)
-    htmlWidget.SetPort(mp)
-    htmlWidget.Show()
-    
-    ' Event loop to keep the player running and capture events
+    print "Starting REDS Player"
+
+    videoPath = "SD:/media/videos/default-video.mp4"
+
+    ' Use the player's active output mode instead of forcing a mode change.
+    videoMode = CreateObject("roVideoMode")
+    width = videoMode.GetVideoResX()
+    height = videoMode.GetVideoResY()
+
+    ' Safe fallback for a display that has not reported its dimensions yet.
+    if width <= 0 then width = 1920
+    if height <= 0 then height = 1080
+
+    rectangle = CreateObject("roRectangle", 0, 0, width, height)
+    player = CreateObject("roVideoPlayer")
+
+    ' Never call methods on an invalid component; doing so causes an autorun
+    ' runtime error and the red error-light flash code.
+    if player = invalid then
+        print "ERROR: roVideoPlayer could not be created"
+        while true
+            sleep(10000)
+        end while
+    end if
+
+    player.SetRectangle(rectangle)
+    player.SetViewMode("FillScreenAndCentered")
+    player.SetLoopMode(true)
+
+    started = player.PlayFile(videoPath)
+    if started = false then
+        print "ERROR: Unable to play "; videoPath
+    else
+        print "Playing "; videoPath
+    end if
+
+    ' Keep the autorun process alive while native playback loops.
     while true
-        msg = wait(0, mp)
-        if type(msg) = "roHtmlWidgetEvent" then
-            eventData = msg.GetData()
-            print "HTML Event: "; eventData
-        endif
+        sleep(10000)
     end while
 End Sub
