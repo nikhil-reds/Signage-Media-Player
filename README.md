@@ -44,14 +44,19 @@ Artifacts are separated by platform:
 ```text
 output/
 ├── windows/              # SignLink Player Windows installer (.exe)
-├── brightsign/
-│   ├── sd-card/          # copy these contents to the SD-card root
+├── brightsign/           # all BrightSign output stays in this folder
+│   ├── autorun.brs       # SD-card startup script
+│   ├── media/            # SD-card media files
 │   └── SignLink-BrightSign-1.0.0.zip
 ├── linux/                # Linux AppImage
 └── macos/                # universal macOS DMG
 ```
 
-BrightSign does not run Windows `.exe` files. Extract the BrightSign ZIP and copy the contents—not the enclosing `sd-card` directory—to the root of a supported SD card. The player boots through `autorun.brs`.
+BrightSign does not run Windows `.exe` files. Extract `output/brightsign/SignLink-BrightSign-1.0.0.zip` directly to the root of a supported SD card. Alternatively, copy `autorun.brs` and `media/` from `output/brightsign` to the card root. Do not place the enclosing `brightsign` directory on the card.
+
+The BrightSign build validates the BrightScript syntax, required paths, JSON configuration, MP4 container header, H.264 video marker, and ZIP integrity. The current BrightSign launcher uses native `roVideoPlayer` playback and does not require Chromium or the desktop application files.
+
+Default BrightSign playback is deliberately offline-only. The build fails if the launcher introduces an HTTP URL, `roUrlTransfer`, or `roNetworkConfiguration`. If the device displays a network setup/recovery screen instead of the video, configure that device for **No Networking / Standalone** mode and confirm that `autorun.brs` is directly at the SD-card root.
 
 ### Build-host requirements
 
