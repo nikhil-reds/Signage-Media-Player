@@ -17,6 +17,7 @@
     "appId": "io.signlink.player",
     "productName": "SignLink Player",
     "asar": true,
+    "icon": "assets/logo.png",
     "files": [
       "electron/**/*",
       "index.html",
@@ -28,7 +29,8 @@
       "media/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "reds-player.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -39,11 +41,13 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.video",
-      "identity": null
+      "identity": null,
+      "artifactName": "reds-player.${ext}"
     },
     "linux": {
       "target": "AppImage",
-      "category": "AudioVideo"
+      "category": "AudioVideo",
+      "artifactName": "reds-player.${ext}"
     }
   },
   "devDependencies": {
