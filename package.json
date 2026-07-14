@@ -8,6 +8,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
+    "validate:brightsign": "node scripts/validate-brightsign.mjs",
     "build:windows": "electron-builder --win nsis --x64 --config.directories.output=output/windows",
     "build:brightsign": "node scripts/package-brightsign.mjs",
     "build:linux": "electron-builder --linux AppImage --x64 --config.directories.output=output/linux",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "archiver": "^8.0.0",
+    "brighterscript": "^0.73.0",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3"
   }
