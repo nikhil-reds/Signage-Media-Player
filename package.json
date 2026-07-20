@@ -11,7 +11,7 @@
     "validate:brightsign": "node scripts/validate-brightsign.mjs",
     "build:windows": "electron-builder --win nsis --x64 --config.directories.output=output/windows",
     "build:brightsign": "node scripts/package-brightsign.mjs",
-    "build:linux": "electron-builder --linux AppImage --x64 --config.directories.output=output/linux",
+    "build:linux": "electron-builder --linux AppImage --x64 --arm64 --config.directories.output=output/linux",
     "build:mac": "electron-builder --mac dmg --universal --config.directories.output=output/macos"
   },
   "build": {
@@ -48,7 +48,7 @@
     "linux": {
       "target": "AppImage",
       "category": "AudioVideo",
-      "artifactName": "reds-player.${ext}"
+      "artifactName": "reds-player-${arch}.${ext}"
     }
   },
   "devDependencies": {
