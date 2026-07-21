@@ -4,93 +4,266 @@ SignLink is a planned commercial-grade digital signage player inspired by the re
 
 > This is an independent project and is not affiliated with or endorsed by BrightSign.
 
-## Project status
+## Current Status
 
-The repository currently contains a proof of concept for BrightSign hardware:
+This repository contains the working desktop/Electron player plus BrightSign
+packaging files. The current live flow is:
 
-- `autorun.brs` launches a fullscreen HTML widget at 1920×1080.
-- `index.html`, `styles.css`, and `app.js` provide an unattended fullscreen playback surface with no visible controls.
-- `config.json` defines the device and its bundled startup video.
-- The bundled default video autoplays muted and loops continuously.
-
-The prototype does **not** yet implement remote registration, scheduling, durable media caching, content verification, telemetry, watchdog recovery, or production signing and release automation. Development packaging is available for all four targets. The bundled `media/videos/default-video.mp4` is the first playlist item and starts automatically when the player launches.
-
-## Build commands
-
-The packaging workflow has two steps. Install the build tools once:
-
-```bash
-npm install
+```text
+CMS schedule / playlist
+        |
+        v
+cms-worker renders playlist MP4
+        |
+        v
+S3 + CloudFront manifest
+        |
+        v
+Electron player pulls manifest
+        |
+        v
+downloads MP4s locally
+        |
+        v
+updates local config.json
+        |
+        v
+renderer plays active playlist
 ```
 
-## Wi-Fi LAN control
+The player has two playback paths:
 
-The desktop Electron player starts a small local-network API with the app. By
-default it listens on every network interface at `http://0.0.0.0:3030`, so a
-worker on another laptop connected to the same Wi-Fi can upload media and update
-`config.json`.
+- **Manifest pull mode:** the normal scheduled playback path. The player polls a
+  published manifest, downloads media, applies the active schedule, and plays the
+  selected playlist.
+- **Local fallback mode:** if no manifest is configured, or manifest sync fails,
+  the player keeps using the last valid local `config.json`. The bundled default
+  video exists so the screen is never blank.
 
-On the player laptop:
+The player does not yet implement device registration, heartbeat, proof-of-play,
+remote diagnostics, signed updates, or production release automation.
 
-```bash
-PLAYER_LAN_PORT=3030 npm start
+## Important Files
+
+```text
+electron/main.cjs     Electron main process, LAN API, manifest sync, runtime storage
+app.js                Browser playback engine that renders the current playlist
+index.html            Fullscreen player shell
+styles.css            Fullscreen media styling
+config.json           Bundled/default player config
+media/videos/         Bundled fallback media in development
+autorun.brs           BrightSign launcher
+scripts/              Build and validation helpers
 ```
 
-Optional shared-secret protection:
+## Runtime Storage
+
+Development mode and packaged mode use different writable locations.
+
+In development:
+
+```text
+/Users/nikhil/Desktop/player/
+├── config.json
+├── sync-state.json
+├── manifest-cache.json
+└── media/
+```
+
+In packaged Electron builds, such as Linux AppImage, the app cannot write inside
+`resources/app.asar`. Runtime files are stored in Electron's writable user-data
+folder instead.
+
+On Linux AppImage this is usually:
+
+```text
+~/.config/signlink-digital-signage-player/
+├── config.json
+├── sync-state.json
+├── manifest-cache.json
+└── media/videos/
+```
+
+This avoids errors such as:
+
+```text
+ENOTDIR: not a directory, mkdir '/tmp/.mount_.../resources/app.asar/media/videos'
+```
+
+The renderer loads runtime `config.json` and `media/*` through the internal
+`signlink://` protocol, so packaged playback can use files downloaded into the
+writable user-data folder.
+
+## Configuration
+
+The bundled `config.json` can enable manifest sync directly:
+
+```json
+{
+  "deviceId": "SL-PLAYER-001",
+  "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
+  "cdnUrl": "https://d1zue4w6hf1jx0.cloudfront.net",
+  "syncIntervalMs": 30000,
+  "refreshIntervalMs": 15000,
+  "playlist": [
+    {
+      "id": "fallback",
+      "type": "video",
+      "src": "media/videos/default-video.mp4",
+      "default": true,
+      "loop": true,
+      "muted": true
+    }
+  ]
+}
+```
+
+Environment variables override `config.json`:
+
+```bash
+PLAYER_MANIFEST_URL=https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json
+PLAYER_CDN_URL=https://d1zue4w6hf1jx0.cloudfront.net
+PLAYER_SYNC_INTERVAL_MS=30000
+PLAYER_LAN_PORT=3030
+PLAYER_LAN_TOKEN=change-me
+```
+
+## Manifest Sync
+
+The player polls the manifest URL every `syncIntervalMs`.
+
+Manifest shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "deviceId": "SL-PLAYER-001",
+  "revision": "2026-07-21T06:30:00.000Z",
+  "playlist": [
+    {
+      "id": "playlist-id",
+      "type": "video",
+      "src": "media/videos/playlist-id.mp4",
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/playlist-id.mp4",
+      "loop": true,
+      "muted": false
+    }
+  ],
+  "playlists": [
+    {
+      "id": "playlist-id",
+      "items": []
+    }
+  ],
+  "schedules": [
+    {
+      "id": "schedule-id",
+      "name": "Lunch Menu",
+      "playlistId": "playlist-id",
+      "priority": 100,
+      "startAt": "2026-07-21T06:25:00.000Z",
+      "endAt": "2026-07-21T11:30:00.000Z",
+      "daysOfWeek": [1, 2, 3, 4, 5, 6, 7]
+    }
+  ]
+}
+```
+
+Sync behavior:
+
+1. Fetch manifest with `cache: no-store`.
+2. Collect all media from `playlist` and `playlists[*].items`.
+3. Download each media file into local `media/`.
+4. Store downloaded URL metadata in `sync-state.json`.
+5. Skip re-downloads when the same URL is already cached locally.
+6. Pick the active schedule by time, day, and priority.
+7. Write the selected playlist into local `config.json`.
+8. The renderer re-reads `config.json` and starts playback.
+
+If sync fails, the player keeps the last working local config and retries on the
+next interval.
+
+## Playback Engine
+
+`app.js` runs inside the renderer. It:
+
+- reads `config.json` on startup,
+- re-reads it every `refreshIntervalMs`,
+- plays videos/audio with HTML media elements,
+- displays images for `durationMs`,
+- advances through multi-item playlists,
+- loops single-item playlists,
+- skips broken files,
+- falls back to `media/videos/default-video.mp4` if every configured item fails.
+
+## LAN API
+
+The Electron main process also starts a small local API on
+`http://0.0.0.0:3030` by default.
+
+Endpoints:
+
+```text
+GET  /health
+POST /api/media/:folder/:fileName
+POST /api/playlist/add
+POST /api/playlist/replace
+POST /api/playlist/remove
+```
+
+Run with optional token protection:
 
 ```bash
 PLAYER_LAN_TOKEN="change-me" npm start
 ```
 
-From the worker laptop, set `PLAYER_API_URL` to the player laptop's Wi-Fi IP:
+The worker can push to this API by setting:
 
 ```env
 PLAYER_API_URL=http://192.168.1.25:3030
 PLAYER_API_TOKEN=change-me
 ```
 
-Use the token only if `PLAYER_LAN_TOKEN` is set on the player. The player and
-worker must be on the same Wi-Fi network, and the player laptop firewall must
-allow incoming connections on the selected port.
+For scheduled production-style playback, manifest pull mode is preferred over
+LAN push mode.
 
-## Pull-based manifest sync
+## Run Locally
 
-For production-style operation, run the player with a manifest URL instead of
-having a worker push files into the player over Wi-Fi. The player polls the
-manifest, downloads every listed media file into `media/`, and updates
-`config.json` only after downloads finish.
+Install dependencies once:
 
 ```bash
-PLAYER_MANIFEST_URL=https://d111111abcdef8.cloudfront.net/manifests/SL-PLAYER-001.json \
-PLAYER_CDN_URL=https://d111111abcdef8.cloudfront.net \
+npm install
+```
+
+Start the player:
+
+```bash
+npm start
+```
+
+With the current `config.json`, plain `npm start` enables manifest sync. You can
+still override the manifest at runtime:
+
+```bash
+PLAYER_MANIFEST_URL=https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json \
+PLAYER_CDN_URL=https://d1zue4w6hf1jx0.cloudfront.net \
 PLAYER_SYNC_INTERVAL_MS=30000 \
 npm start
 ```
 
-The manifest format is:
+Expected successful startup logs:
 
-```json
-{
-  "schemaVersion": 1,
-  "deviceId": "SL-PLAYER-001",
-  "revision": "2026-07-20T15:30:00.000Z",
-  "playlist": [
-    {
-      "id": "playlist-id",
-      "type": "video",
-      "src": "media/videos/playlist-id.mp4",
-      "url": "https://d111111abcdef8.cloudfront.net/playlists/playlist-id.mp4",
-      "loop": true,
-      "muted": false
-    }
-  ]
-}
+```text
+Player manifest sync enabled: https://...
+Player LAN API listening on http://0.0.0.0:3030
+Downloading manifest media https://... -> media/videos/playlist-id.mp4
+Applied scheduled playlist with 1 item(s).
+Synced manifest revision 2026-07-21T06:30:00.000Z
 ```
 
-If the network is unavailable or a download fails, the player keeps the last
-working local `config.json` and retries on the next sync interval.
+## Build Commands
 
-Then run one of the four target commands:
+Run one of the target commands:
 
 ```bash
 # Windows x64 — creates an NSIS .exe installer
@@ -134,6 +307,54 @@ Default BrightSign playback is deliberately offline-only. The build fails if the
 - The current desktop packages are unsigned development artifacts. Signing, notarization, release credentials, and CI builds must be added before commercial distribution.
 
 Electron-builder does not guarantee that every platform can be built reliably from one host. For repeatable releases, use a CI matrix with native Windows, Linux, and macOS runners, plus a separate BrightSign packaging job.
+
+## Troubleshooting
+
+### `cd: reds-player-arm64.AppImage: Not a directory`
+
+An AppImage is an executable file, not a folder. Run it like this:
+
+```bash
+chmod +x "reds-player-arm64.AppImage"
+./"reds-player-arm64.AppImage"
+```
+
+### `ENOTDIR ... resources/app.asar/media/videos`
+
+This means an older packaged build tried to write downloaded media inside
+`app.asar`. Rebuild the AppImage from the current code. Current builds write
+runtime media to Electron `userData`, for example:
+
+```text
+~/.config/signlink-digital-signage-player/media/videos/
+```
+
+### Player Still Shows Default Video
+
+Check these in order:
+
+1. The player logs should include `Player manifest sync enabled`.
+2. The manifest URL should be present in `config.json` or `PLAYER_MANIFEST_URL`.
+3. The manifest should contain a non-empty `playlist` or an active schedule.
+4. The listed media file should download into local `media/videos/`.
+5. Local `config.json` should update from the fallback item to the scheduled item.
+
+If manifest sync fails, the player intentionally keeps the previous local config
+instead of switching to broken content.
+
+### GPU / VAAPI Warnings On Linux
+
+Messages such as these are usually hardware-acceleration warnings and are not
+the manifest-sync failure:
+
+```text
+Xlib: extension "DRI2" missing
+libva error
+vaInitialize failed
+```
+
+The important failure to fix is any download, filesystem, or media decode error
+that follows those warnings.
 
 ### Packaging release plan
 
