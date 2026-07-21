@@ -23,6 +23,73 @@ The packaging workflow has two steps. Install the build tools once:
 npm install
 ```
 
+## Wi-Fi LAN control
+
+The desktop Electron player starts a small local-network API with the app. By
+default it listens on every network interface at `http://0.0.0.0:3030`, so a
+worker on another laptop connected to the same Wi-Fi can upload media and update
+`config.json`.
+
+On the player laptop:
+
+```bash
+PLAYER_LAN_PORT=3030 npm start
+```
+
+Optional shared-secret protection:
+
+```bash
+PLAYER_LAN_TOKEN="change-me" npm start
+```
+
+From the worker laptop, set `PLAYER_API_URL` to the player laptop's Wi-Fi IP:
+
+```env
+PLAYER_API_URL=http://192.168.1.25:3030
+PLAYER_API_TOKEN=change-me
+```
+
+Use the token only if `PLAYER_LAN_TOKEN` is set on the player. The player and
+worker must be on the same Wi-Fi network, and the player laptop firewall must
+allow incoming connections on the selected port.
+
+## Pull-based manifest sync
+
+For production-style operation, run the player with a manifest URL instead of
+having a worker push files into the player over Wi-Fi. The player polls the
+manifest, downloads every listed media file into `media/`, and updates
+`config.json` only after downloads finish.
+
+```bash
+PLAYER_MANIFEST_URL=https://d111111abcdef8.cloudfront.net/manifests/SL-PLAYER-001.json \
+PLAYER_CDN_URL=https://d111111abcdef8.cloudfront.net \
+PLAYER_SYNC_INTERVAL_MS=30000 \
+npm start
+```
+
+The manifest format is:
+
+```json
+{
+  "schemaVersion": 1,
+  "deviceId": "SL-PLAYER-001",
+  "revision": "2026-07-20T15:30:00.000Z",
+  "playlist": [
+    {
+      "id": "playlist-id",
+      "type": "video",
+      "src": "media/videos/playlist-id.mp4",
+      "url": "https://d111111abcdef8.cloudfront.net/playlists/playlist-id.mp4",
+      "loop": true,
+      "muted": false
+    }
+  ]
+}
+```
+
+If the network is unavailable or a download fails, the player keeps the last
+working local `config.json` and retries on the next sync interval.
+
 Then run one of the four target commands:
 
 ```bash
