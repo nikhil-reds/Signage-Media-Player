@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "deviceId": "SL-PLAYER-001",
+  "revision": "2026-07-21T07:31:05.687Z",
+  "playlist": [
+    {
+      "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+      "type": "video",
+      "src": "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+      "loop": true,
+      "muted": false
+    }
+  ],
+  "playlists": [
+    {
+      "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "items": [
+        {
+          "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+          "type": "video",
+          "src": "media/videos/playlist-69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    },
+    {
+      "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+      "items": [
+        {
+          "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+          "type": "video",
+          "src": "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    },
+    {
+      "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+      "items": [
+        {
+          "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+          "type": "video",
+          "src": "media/videos/playlist-94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    },
+    {
+      "id": "e9e3db7f-6d6a-44ee-b363-5faed82a518b",
+      "items": [
+        {
+          "id": "e9e3db7f-6d6a-44ee-b363-5faed82a518b",
+          "type": "video",
+          "src": "media/videos/playlist-e9e3db7f-6d6a-44ee-b363-5faed82a518b.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e9e3db7f-6d6a-44ee-b363-5faed82a518b.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    },
+    {
+      "id": "f6b4788a-633c-4587-b782-3b9371726770",
+      "items": [
+        {
+          "id": "f6b4788a-633c-4587-b782-3b9371726770",
+          "type": "video",
+          "src": "media/videos/playlist-f6b4788a-633c-4587-b782-3b9371726770.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/f6b4788a-633c-4587-b782-3b9371726770.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    },
+    {
+      "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "items": [
+        {
+          "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+          "type": "video",
+          "src": "media/videos/playlist-69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    },
+    {
+      "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+      "items": [
+        {
+          "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+          "type": "video",
+          "src": "media/videos/playlist-94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+          "loop": true,
+          "muted": false
+        }
+      ]
+    }
+  ],
+  "schedules": [
+    {
+      "id": "b429928b-f27b-4db4-9f4d-63053fef2819",
+      "name": "test the playlist beta",
+      "playlistId": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "priority": 100,
+      "startAt": "2026-07-20T12:50:00.000Z",
+      "endAt": "2026-07-20T11:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "00f917fd-fb73-4c6d-a760-cbd0223f402b",
+      "name": "test RGB",
+      "playlistId": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+      "priority": 100,
+      "startAt": "2026-07-21T07:30:00.000Z",
+      "endAt": "2026-07-21T07:35:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "6e0dbf3a-b452-4ee1-9103-9819feed99be",
+      "name": "ad01",
+      "playlistId": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+      "priority": 80,
+      "startAt": "2026-07-21T07:05:00.000Z",
+      "endAt": "2026-07-21T07:10:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "507dc466-78da-478e-ac15-7614cb4ef64d",
+      "name": "Tripti",
+      "playlistId": "e9e3db7f-6d6a-44ee-b363-5faed82a518b",
+      "priority": 40,
+      "startAt": "2026-07-15T07:00:00.000Z",
+      "endAt": "2026-07-15T14:40:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "a8ae7eef-dfb3-401f-a151-59baefd1d3ed",
+      "name": "testaplha",
+      "playlistId": "f6b4788a-633c-4587-b782-3b9371726770",
+      "priority": 30,
+      "startAt": "2026-07-20T10:20:00.000Z",
+      "endAt": "2026-07-20T11:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "b91018d7-d398-497b-8880-aa272d8a223f",
+      "name": "test beta 99999",
+      "playlistId": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "priority": 30,
+      "startAt": "2026-07-20T11:40:00.000Z",
+      "endAt": "2026-07-20T11:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "00200a61-aabd-464c-91d3-dc69c1782aad",
+      "name": "dgedhgresherh",
+      "playlistId": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+      "priority": 30,
+      "startAt": "2026-07-21T07:25:00.000Z",
+      "endAt": "2026-07-21T07:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ]
+}
