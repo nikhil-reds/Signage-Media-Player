@@ -3,17 +3,19 @@
   "version": "1.0.0",
   "deviceId": "SL-PLAYER-001",
   "serverUrl": "https://api.signlink.io/v1",
-  "refreshIntervalMs": 60000,
+  "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
+  "cdnUrl": "https://d1zue4w6hf1jx0.cloudfront.net",
+  "syncIntervalMs": 30000,
+  "refreshIntervalMs": 15000,
   "volume": 80,
   "orientation": "landscape",
   "playlist": [
     {
-      "id": "1",
+      "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
       "type": "video",
-      "src": "media/videos/default-video.mp4",
-      "default": true,
-      "muted": true,
-      "loop": true
+      "src": "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+      "loop": true,
+      "muted": false
     }
   ]
 }
