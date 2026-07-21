@@ -19,6 +19,7 @@ class SignagePlayer {
     this.index = 0;
     this.failedSources = new Set();
     this.currentElement = null;
+    this.pendingElement = null;
     this.advanceTimer = null;
     this.retryTimer = null;
     this.refreshTimer = null;
@@ -28,6 +29,7 @@ class SignagePlayer {
   async start() {
     const config = await this.loadConfig();
     this.applyConfig(config, { restart: true });
+    this.listenForRuntimeUpdates();
     this.watchConfig();
   }
 
@@ -110,6 +112,14 @@ class SignagePlayer {
     }, this.refreshIntervalMs);
   }
 
+  listenForRuntimeUpdates() {
+    if (!window.signlinkPlayer?.onPlaylistUpdated) return;
+
+    window.signlinkPlayer.onPlaylistUpdated((playlist) => {
+      this.applyConfig({ playlist }, { restart: true });
+    });
+  }
+
   // ---------------------------------------------------------------------
   // Playback
   // ---------------------------------------------------------------------
@@ -129,6 +139,20 @@ class SignagePlayer {
     } else {
       this.mountVideo(item); // video and audio both use a media element
     }
+  }
+
+  swapToReadyElement(element) {
+    if (this.currentElement && this.currentElement !== element) {
+      this.currentElement.remove();
+    }
+
+    if (!element.isConnected) {
+      this.viewport.appendChild(element);
+    }
+
+    element.classList.remove('media-element--pending');
+    this.currentElement = element;
+    this.pendingElement = null;
   }
 
   next() {
@@ -154,10 +178,13 @@ class SignagePlayer {
   }
 
   mountVideo(item) {
-    this.viewport.replaceChildren();
+    if (this.pendingElement) {
+      this.pendingElement.remove();
+      this.pendingElement = null;
+    }
 
     const video = document.createElement('video');
-    video.className = 'media-element';
+    video.className = 'media-element media-element--pending';
     video.src = item.src;
     video.autoplay = true;
     video.muted = item.muted !== false;
@@ -169,48 +196,63 @@ class SignagePlayer {
     video.setAttribute('webkit-playsinline', '');
     video.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
 
-    // Single-item playlists loop the video itself; otherwise advance on end.
     const loopAlone = this.playlist.length === 1 && item.loop !== false;
     video.loop = loopAlone;
 
-    if (!loopAlone) {
-      video.addEventListener('ended', () => this.next());
-    }
+    video.addEventListener('ended', () => {
+      if (!loopAlone) {
+        this.next();
+        return;
+      }
+
+      video.currentTime = 0;
+      video.play().catch(() => {
+        this.retryTimer = setTimeout(() => this.playCurrent(), 500);
+      });
+    });
 
     video.addEventListener('error', () => {
       this.handleMediaError(item);
     });
 
     video.addEventListener('canplay', () => {
-      video.play().catch(() => {
+      video.play().then(() => {
+        this.swapToReadyElement(video);
+      }).catch(() => {
         this.retryTimer = setTimeout(() => this.playCurrent(), 2000);
       });
     });
 
-    this.currentElement = video;
+    this.pendingElement = video;
     this.viewport.appendChild(video);
     video.load();
   }
 
   mountImage(item) {
-    this.viewport.replaceChildren();
+    if (this.pendingElement) {
+      this.pendingElement.remove();
+      this.pendingElement = null;
+    }
 
     const img = document.createElement('img');
-    img.className = 'media-element';
-    img.src = item.src;
+    img.className = 'media-element media-element--pending';
     img.alt = '';
 
     img.addEventListener('error', () => {
       this.handleMediaError(item);
     });
 
-    this.currentElement = img;
     this.viewport.appendChild(img);
 
     const durationMs = Number.isFinite(item.durationMs) && item.durationMs > 0
       ? item.durationMs
       : 8000;
-    this.advanceTimer = setTimeout(() => this.next(), durationMs);
+    img.addEventListener('load', () => {
+      this.swapToReadyElement(img);
+      this.advanceTimer = setTimeout(() => this.next(), durationMs);
+    });
+
+    img.src = item.src;
   }
 
   showError(message) {
