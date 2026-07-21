@@ -56,5 +56,8 @@
     "brighterscript": "^0.73.0",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "ws": "^8.21.1"
   }
 }
