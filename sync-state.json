@@ -1,0 +1,31 @@
+{
+  "revision": "2026-07-21T07:31:05.687Z",
+  "syncedAt": "2026-07-21T07:31:06.908Z",
+  "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
+  "media": {
+    "media/videos/playlist-f6b4788a-633c-4587-b782-3b9371726770.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/f6b4788a-633c-4587-b782-3b9371726770.mp4",
+      "downloadedAt": "2026-07-21T06:44:29.250Z"
+    },
+    "media/videos/playlist-69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+      "downloadedAt": "2026-07-21T06:44:28.872Z"
+    },
+    "media/videos/playlist-e9e3db7f-6d6a-44ee-b363-5faed82a518b.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e9e3db7f-6d6a-44ee-b363-5faed82a518b.mp4",
+      "downloadedAt": "2026-07-21T06:44:29.188Z"
+    },
+    "media/videos/playlist-2548ee9d-ef8c-461b-a004-f39dac05c7e4.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/2548ee9d-ef8c-461b-a004-f39dac05c7e4.mp4",
+      "downloadedAt": "2026-07-21T06:35:33.220Z"
+    },
+    "media/videos/playlist-94ff1f33-6137-4614-98de-58e1c9542e5c.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+      "downloadedAt": "2026-07-21T06:55:33.246Z"
+    },
+    "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+      "downloadedAt": "2026-07-21T07:29:07.732Z"
+    }
+  }
+}
