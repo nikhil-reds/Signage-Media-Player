@@ -33,6 +33,10 @@ body {
   object-fit: cover;
 }
 
+.media-element--pending {
+  visibility: hidden;
+}
+
 .player-error {
   position: fixed;
   inset: 0;
