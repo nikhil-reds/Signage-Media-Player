@@ -23,6 +23,8 @@ const manifestCachePath = path.join(runtimeRoot, 'manifest-cache.json');
 
 let manifestSyncTimer;
 let scheduleEvalTimer;
+let scheduleBoundaryTimer;
+let scheduleBoundaryAtMs = 0;
 let serverClockOffsetMs = 0;
 let lastAppliedScheduleId = '';
 let lastAppliedScheduleEndMs = 0;
@@ -209,9 +211,14 @@ function writeConfig(config) {
   fs.renameSync(tmpPath, configPath);
 }
 
-function notifyRendererPlaylistUpdated(playlist) {
+function notifyRendererConfigUpdated(config) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  mainWindow.webContents.send('playlist.updated', playlist);
+  mainWindow.webContents.send('playlist.updated', {
+    playbackMode: config.playbackMode || 'default',
+    activeScheduleId: config.activeScheduleId || null,
+    activeScheduleName: config.activeScheduleName || null,
+    playlist: Array.isArray(config.playlist) ? config.playlist : []
+  });
 }
 
 function readSyncState() {
@@ -356,13 +363,13 @@ function startLanServer() {
   });
 }
 
-function updateServerClockOffset(serverDate) {
+function updateServerClockOffset(serverDate, source = 'server') {
   const serverTime = Date.parse(serverDate);
   if (!Number.isFinite(serverTime)) return;
 
   serverClockOffsetMs = serverTime - Date.now();
   console.info(
-    `Player clock offset from server: ${serverClockOffsetMs}ms (server=${new Date(serverTime).toISOString()})`
+    `Player clock offset from ${source}: ${serverClockOffsetMs}ms (${new Date(serverTime).toISOString()})`
   );
 }
 
@@ -376,10 +383,17 @@ async function fetchJson(url) {
     throw new Error(`GET ${url} failed with HTTP ${response.status}`);
   }
   const serverDate = response.headers.get('date');
-  if (serverDate) updateServerClockOffset(serverDate);
+  if (serverDate) updateServerClockOffset(serverDate, 'http-date');
 
   const body = await response.json();
-  if (body?.serverNow) updateServerClockOffset(body.serverNow);
+  if (body?.serverNow) {
+    const manifestAgeMs = Date.now() - Date.parse(body.serverNow);
+    if (Number.isFinite(manifestAgeMs)) {
+      console.info(
+        `Manifest serverNow age=${manifestAgeMs}ms; using HTTP Date/local clock for schedule evaluation.`
+      );
+    }
+  }
   return body;
 }
 
@@ -441,7 +455,7 @@ async function syncManifestOnce() {
   if (!manifestUrl) return;
 
   const manifest = await fetchJson(manifestUrl);
-  const manifestItems = getAllManifestItems(manifest);
+  const manifestItems = getDownloadableManifestItems(manifest);
   const state = readSyncState();
   const mediaState = state.media && typeof state.media === 'object' ? state.media : {};
 
@@ -478,14 +492,32 @@ async function syncManifestOnce() {
   console.info(`Synced manifest revision ${manifest.revision || 'unknown'}`);
 }
 
-function getAllManifestItems(manifest) {
+function getDownloadableManifestItems(manifest) {
   const items = [];
 
   if (Array.isArray(manifest.playlist)) {
     items.push(...manifest.playlist);
   }
 
-  if (Array.isArray(manifest.playlists)) {
+  if (Array.isArray(manifest.schedules) && Array.isArray(manifest.playlists)) {
+    const now = verifiedNow().getTime();
+    const downloadablePlaylistIds = new Set(
+      manifest.schedules
+        .filter((schedule) => {
+          const end = Date.parse(schedule.endAt);
+          return Number.isFinite(end) && end > now;
+        })
+        .map((schedule) => schedule.playlistId)
+        .filter((playlistId) => typeof playlistId === 'string' && playlistId.length > 0)
+    );
+
+    for (const playlist of manifest.playlists) {
+      if (!downloadablePlaylistIds.has(playlist.id)) continue;
+      if (Array.isArray(playlist.items)) {
+        items.push(...playlist.items);
+      }
+    }
+  } else if (Array.isArray(manifest.playlists)) {
     for (const playlist of manifest.playlists) {
       if (Array.isArray(playlist.items)) {
         items.push(...playlist.items);
@@ -512,6 +544,66 @@ function isScheduleActive(schedule, now = new Date()) {
   const jsDay = now.getDay();
   const cmsSunday = jsDay === 0 ? 7 : jsDay;
   return now.getTime() >= start && now.getTime() < end && (days.includes(jsDay) || days.includes(cmsSunday));
+}
+
+function getNextScheduleBoundary(manifest) {
+  if (!Array.isArray(manifest?.schedules)) return null;
+
+  const now = verifiedNow().getTime();
+  const boundaries = [];
+  for (const schedule of manifest.schedules) {
+    const start = Date.parse(schedule.startAt);
+    const end = Date.parse(schedule.endAt);
+    if (Number.isFinite(start) && start > now) {
+      boundaries.push({
+        at: start,
+        label: `start:${schedule.name || schedule.id || schedule.playlistId || 'schedule'}`
+      });
+    }
+    if (Number.isFinite(end) && end > now) {
+      boundaries.push({
+        at: end,
+        label: `end:${schedule.name || schedule.id || schedule.playlistId || 'schedule'}`
+      });
+    }
+  }
+
+  boundaries.sort((a, b) => a.at - b.at);
+  return boundaries[0] || null;
+}
+
+function armNextScheduleBoundary(manifest = readManifestCache()) {
+  const boundary = getNextScheduleBoundary(manifest);
+  if (!boundary) {
+    if (scheduleBoundaryTimer) {
+      clearTimeout(scheduleBoundaryTimer);
+      scheduleBoundaryTimer = undefined;
+    }
+    scheduleBoundaryAtMs = 0;
+    return;
+  }
+
+  if (scheduleBoundaryTimer && scheduleBoundaryAtMs === boundary.at) {
+    return;
+  }
+
+  if (scheduleBoundaryTimer) {
+    clearTimeout(scheduleBoundaryTimer);
+    scheduleBoundaryTimer = undefined;
+  }
+  scheduleBoundaryAtMs = boundary.at;
+
+  const delayMs = Math.max(0, boundary.at - verifiedNow().getTime());
+  scheduleBoundaryTimer = setTimeout(() => {
+    scheduleBoundaryTimer = undefined;
+    scheduleBoundaryAtMs = 0;
+    console.info(`Schedule boundary reached (${boundary.label}); applying cached manifest.`);
+    applyScheduledPlaylist();
+  }, delayMs);
+
+  console.info(
+    `Next schedule boundary ${boundary.label} at ${new Date(boundary.at).toISOString()} (${delayMs}ms)`
+  );
 }
 
 function selectScheduledPlaylist(manifest) {
@@ -556,13 +648,43 @@ function selectScheduledPlaylist(manifest) {
 
 function applyScheduledPlaylist(manifest = readManifestCache()) {
   if (!manifest) return;
+  armNextScheduleBoundary(manifest);
 
   const selected = selectScheduledPlaylist(manifest);
   const playlist = selected.playlist;
   const config = readConfig();
-  const nextPlaylist = playlist.map(({ url, ...item }) => item);
-  const currentKey = JSON.stringify(config.playlist || []);
-  const nextKey = JSON.stringify(nextPlaylist);
+  const nextPlaylist = playlist
+    .filter((item) => {
+      if (!item?.src) return false;
+      try {
+        return fs.existsSync(safeLocalSrc(item.src));
+      } catch (error) {
+        console.warn(
+          `Skipping scheduled media with invalid local src ${item.src}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+        return false;
+      }
+    })
+    .map(({ url, ...item }) => item);
+  const nextPlaybackMode =
+    selected.activeSchedule && nextPlaylist.length > 0 ? 'scheduled' : 'default';
+  const currentKey = JSON.stringify({
+    playbackMode: config.playbackMode || 'default',
+    playlist: config.playlist || []
+  });
+  const nextKey = JSON.stringify({
+    playbackMode: nextPlaybackMode,
+    playlist: nextPlaylist
+  });
+
+  if (selected.activeSchedule && playlist.length > 0 && nextPlaylist.length === 0) {
+    console.warn(
+      `Schedule ${selected.activeSchedule.name || selected.activeSchedule.id || 'active'} is active, ` +
+        'but its media is not downloaded yet; falling back to default video.'
+    );
+  }
 
   if (selected.activeSchedule && nextPlaylist.length > 0) {
     lastAppliedScheduleId = selected.activeSchedule.id || lastAppliedScheduleId;
@@ -576,10 +698,19 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
 
   if (currentKey === nextKey) return;
 
+  config.playbackMode = nextPlaybackMode;
+  config.activeScheduleId = selected.activeSchedule?.id || null;
+  config.activeScheduleName = selected.activeSchedule?.name || null;
+  config.activeScheduleStartAt = selected.activeSchedule?.startAt || null;
+  config.activeScheduleEndAt = selected.activeSchedule?.endAt || null;
+  config.appliedAt = new Date().toISOString();
   config.playlist = nextPlaylist;
   writeConfig(config);
-  notifyRendererPlaylistUpdated(nextPlaylist);
-  console.info(`Applied scheduled playlist with ${nextPlaylist.length} item(s).`);
+  notifyRendererConfigUpdated(config);
+  console.info(
+    `Applied ${nextPlaybackMode} playlist with ${nextPlaylist.length} item(s) ` +
+      `(schedule=${config.activeScheduleName || config.activeScheduleId || 'none'}, now=${verifiedNow().toISOString()})`
+  );
 }
 
 async function syncManifestFromPush(notification) {
@@ -599,7 +730,7 @@ async function syncManifestFromPush(notification) {
   }
 
   const manifest = await fetchJson(pushedManifestUrl);
-  const manifestItems = getAllManifestItems(manifest);
+  const manifestItems = getDownloadableManifestItems(manifest);
   const mediaState = state.media && typeof state.media === 'object' ? state.media : {};
 
   for (const item of manifestItems) {
@@ -755,6 +886,11 @@ app.on('window-all-closed', () => {
   if (scheduleEvalTimer) {
     clearInterval(scheduleEvalTimer);
     scheduleEvalTimer = undefined;
+  }
+  if (scheduleBoundaryTimer) {
+    clearTimeout(scheduleBoundaryTimer);
+    scheduleBoundaryTimer = undefined;
+    scheduleBoundaryAtMs = 0;
   }
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
