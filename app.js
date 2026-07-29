@@ -12,10 +12,13 @@ class SignagePlayer {
       src: 'media/videos/default-video.mp4',
       default: true,
       muted: true,
-      loop: true
+      loop: true,
+      fit: 'scale-down',
+      position: 'center'
     };
     this.playlist = [];
     this.playlistKey = '';
+    this.playbackMode = 'default';
     this.index = 0;
     this.failedSources = new Set();
     this.currentElement = null;
@@ -23,7 +26,7 @@ class SignagePlayer {
     this.advanceTimer = null;
     this.retryTimer = null;
     this.refreshTimer = null;
-    this.refreshIntervalMs = 15000;
+    this.refreshIntervalMs = 1000;
   }
 
   async start() {
@@ -69,8 +72,26 @@ class SignagePlayer {
   }
 
   fallbackConfig() {
+    if (this.playbackMode === 'scheduled' && this.playlist.length > 0) {
+      const scheduledPlaylist = this.playlist.filter((item) => item.src !== this.defaultItem.src);
+      if (scheduledPlaylist.length === 0) {
+        return {
+          refreshIntervalMs: this.refreshIntervalMs,
+          playbackMode: 'default',
+          playlist: [this.defaultItem]
+        };
+      }
+
+      return {
+        refreshIntervalMs: this.refreshIntervalMs,
+        playbackMode: 'scheduled',
+        playlist: scheduledPlaylist
+      };
+    }
+
     return {
       refreshIntervalMs: this.refreshIntervalMs,
+      playbackMode: 'default',
       playlist: [this.defaultItem]
     };
   }
@@ -80,19 +101,37 @@ class SignagePlayer {
       this.refreshIntervalMs = config.refreshIntervalMs;
     }
 
+    const playbackMode = config.playbackMode === 'scheduled' ? 'scheduled' : 'default';
     let playlist = (Array.isArray(config.playlist) ? config.playlist : [])
-      .filter((item) => item && typeof item.src === 'string');
+      .filter((item) => item && typeof item.src === 'string')
+      .map((item) => this.normalizeItem(item, playbackMode));
 
     if (playlist.length === 0) {
-      playlist = [this.defaultItem];
+      playlist = [this.normalizeItem(this.defaultItem, 'default')];
     }
 
-    const key = JSON.stringify(playlist.map((item) => [item.src, item.type, item.durationMs]));
+    const key = JSON.stringify(
+      {
+        playbackMode,
+        playlist: playlist.map((item) => [
+          item.src,
+          item.type,
+          item.durationMs,
+          item.fit,
+          item.position,
+          item.width,
+          item.height,
+          item.muted,
+          item.loop
+        ])
+      }
+    );
     const changed = key !== this.playlistKey;
 
     if (!changed && !restart) return;
 
     this.playlistKey = key;
+    this.playbackMode = playbackMode;
     this.playlist = playlist;
     this.failedSources.clear();
 
@@ -100,7 +139,7 @@ class SignagePlayer {
       this.index = 0;
     }
 
-    console.info(`Playlist updated: ${this.playlist.length} item(s).`);
+    console.info(`Playlist updated: ${this.playbackMode}, ${this.playlist.length} item(s).`);
     this.playCurrent();
   }
 
@@ -115,14 +154,49 @@ class SignagePlayer {
   listenForRuntimeUpdates() {
     if (!window.signlinkPlayer?.onPlaylistUpdated) return;
 
-    window.signlinkPlayer.onPlaylistUpdated((playlist) => {
-      this.applyConfig({ playlist }, { restart: true });
+    window.signlinkPlayer.onPlaylistUpdated((update) => {
+      if (Array.isArray(update)) {
+        this.applyConfig({ playbackMode: update.length > 0 ? 'scheduled' : 'default', playlist: update }, { restart: true });
+        return;
+      }
+
+      this.applyConfig(update, { restart: true });
     });
   }
 
   // ---------------------------------------------------------------------
   // Playback
   // ---------------------------------------------------------------------
+
+  normalizeItem(item, playbackMode = 'default') {
+    const fit = ['cover', 'contain', 'fill', 'none', 'scale-down'].includes(item.fit)
+      ? item.fit
+      : 'scale-down';
+    const position = ['center', 'top', 'bottom', 'left', 'right'].includes(item.position)
+      ? item.position
+      : 'center';
+
+    return {
+      ...item,
+      fit,
+      position,
+      playbackMode,
+      muted: item.muted !== false
+    };
+  }
+
+  applyLayout(element, item) {
+    element.style.objectFit = item.fit || 'scale-down';
+    element.style.objectPosition = item.position || 'center';
+    if (Number.isFinite(item.width) && item.width > 0 && Number.isFinite(item.height) && item.height > 0) {
+      const ratio = item.width / item.height;
+      element.style.width = `min(100vw, calc(100vh * ${ratio}))`;
+      element.style.height = `min(100vh, calc(100vw / ${ratio}))`;
+    } else {
+      element.style.width = '100vw';
+      element.style.height = '100vh';
+    }
+  }
 
   playCurrent() {
     clearTimeout(this.advanceTimer);
@@ -166,12 +240,18 @@ class SignagePlayer {
     this.failedSources.add(item.src);
 
     if (this.failedSources.size >= this.playlist.length) {
-      const fallbackKey = JSON.stringify([[this.defaultItem.src, this.defaultItem.type, this.defaultItem.durationMs]]);
-      if (this.playlistKey !== fallbackKey) {
-        console.warn('No configured media could be loaded; playing default video.');
-        this.applyConfig({ playlist: [this.defaultItem] }, { restart: true });
+      if (this.playbackMode === 'scheduled') {
+        console.warn('Scheduled media failed; retrying scheduled video instead of playing default.');
+        this.retryTimer = setTimeout(() => {
+          this.failedSources.clear();
+          this.playCurrent();
+        }, 1000);
         return;
       }
+
+      console.warn('No configured media could be loaded; playing default video.');
+      this.applyConfig({ playlist: [this.defaultItem] }, { restart: true });
+      return;
     }
 
     this.retryTimer = setTimeout(() => this.next(), 2000);
@@ -186,8 +266,9 @@ class SignagePlayer {
     const video = document.createElement('video');
     video.className = 'media-element media-element--pending';
     video.src = item.src;
+    this.applyLayout(video, item);
     video.autoplay = true;
-    video.muted = item.muted !== false;
+    video.muted = item.muted;
     video.defaultMuted = video.muted;
     video.playsInline = true;
     video.preload = 'auto';
@@ -200,6 +281,7 @@ class SignagePlayer {
     video.loop = loopAlone;
 
     video.addEventListener('ended', () => {
+      console.info(`Video ended: ${item.src} (mode=${item.playbackMode}, loopAlone=${loopAlone})`);
       if (!loopAlone) {
         this.next();
         return;
@@ -212,11 +294,13 @@ class SignagePlayer {
     });
 
     video.addEventListener('error', () => {
+      console.warn(`Video error: ${item.src} (mode=${item.playbackMode})`);
       this.handleMediaError(item);
     });
 
     video.addEventListener('canplay', () => {
       video.play().then(() => {
+        console.info(`Video playing: ${item.src} (mode=${item.playbackMode}, loop=${video.loop})`);
         this.swapToReadyElement(video);
       }).catch(() => {
         this.retryTimer = setTimeout(() => this.playCurrent(), 2000);
@@ -237,6 +321,7 @@ class SignagePlayer {
     const img = document.createElement('img');
     img.className = 'media-element media-element--pending';
     img.alt = '';
+    this.applyLayout(img, item);
 
     img.addEventListener('error', () => {
       this.handleMediaError(item);
