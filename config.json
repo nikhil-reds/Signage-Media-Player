@@ -13,21 +13,20 @@
   "orientation": "landscape",
   "playlist": [
     {
-      "id": "4fbbb884-0a64-4660-aaf0-99105b9349fc",
+      "id": "fallback",
       "type": "video",
-      "src": "media/videos/playlist-4fbbb884-0a64-4660-aaf0-99105b9349fc.mp4",
+      "src": "media/videos/default-video.mp4",
+      "default": true,
       "loop": true,
-      "muted": false,
+      "muted": true,
       "fit": "scale-down",
-      "position": "center",
-      "width": 1920,
-      "height": 1080
+      "position": "center"
     }
   ],
-  "playbackMode": "scheduled",
-  "activeScheduleId": "512f8ccb-0eb4-4826-a38f-b5e75432966b",
-  "activeScheduleName": "cover-image",
-  "activeScheduleStartAt": "2026-07-28T13:00:00.000Z",
-  "activeScheduleEndAt": "2026-07-28T13:05:00.000Z",
-  "appliedAt": "2026-07-28T12:59:59.967Z"
+  "playbackMode": "default",
+  "activeScheduleId": null,
+  "activeScheduleName": null,
+  "activeScheduleStartAt": null,
+  "activeScheduleEndAt": null,
+  "appliedAt": "2026-07-29T09:00:05.089Z"
 }

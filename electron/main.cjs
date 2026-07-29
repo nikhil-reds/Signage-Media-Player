@@ -1,9 +1,9 @@
-const { app, BrowserWindow, net, powerSaveBlocker, protocol } = require('electron');
+const { app, BrowserWindow, powerSaveBlocker, protocol } = require('electron');
 const WebSocket = require('ws');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
+const { protocolFileResponse } = require('./file-response.cjs');
 
 let mainWindow;
 let powerSaveBlockerId;
@@ -29,6 +29,17 @@ let serverClockOffsetMs = 0;
 let lastAppliedScheduleId = '';
 let lastAppliedScheduleEndMs = 0;
 let lastAppliedPlaylist = [];
+
+const defaultPlaylistItem = {
+  id: 'fallback',
+  type: 'video',
+  src: 'media/videos/default-video.mp4',
+  default: true,
+  loop: true,
+  muted: true,
+  fit: 'scale-down',
+  position: 'center'
+};
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -101,10 +112,6 @@ const cdnBaseUrl =
   '';
 const s3BaseUrl = process.env.PLAYER_S3_BASE_URL || startupConfig.s3BaseUrl || '';
 
-function protocolFileResponse(filePath) {
-  return net.fetch(pathToFileURL(filePath).toString());
-}
-
 function resolvePlayerProtocolPath(requestUrl) {
   const url = new URL(requestUrl);
   const pathname = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
@@ -140,7 +147,7 @@ function resolvePlayerProtocolPath(requestUrl) {
 function registerPlayerProtocol() {
   protocol.handle('signlink', async (request) => {
     const filePath = resolvePlayerProtocolPath(request.url);
-    return protocolFileResponse(filePath);
+    return protocolFileResponse(filePath, request);
   });
 }
 
@@ -158,6 +165,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: false,
       preload: path.join(__dirname, 'preload.cjs'),
       devTools: false,
       autoplayPolicy: 'no-user-gesture-required'
@@ -217,6 +225,15 @@ function notifyRendererConfigUpdated(config) {
     playbackMode: config.playbackMode || 'default',
     activeScheduleId: config.activeScheduleId || null,
     activeScheduleName: config.activeScheduleName || null,
+    width: config.width,
+    height: config.height,
+    renderWidth: config.renderWidth,
+    renderHeight: config.renderHeight,
+    playlistWidth: config.playlistWidth,
+    playlistHeight: config.playlistHeight,
+    resolution: config.resolution,
+    renderResolution: config.renderResolution,
+    playlistResolution: config.playlistResolution,
     playlist: Array.isArray(config.playlist) ? config.playlist : []
   });
 }
@@ -610,6 +627,7 @@ function selectScheduledPlaylist(manifest) {
   if (!Array.isArray(manifest.schedules) || !Array.isArray(manifest.playlists)) {
     return {
       playlist: Array.isArray(manifest.playlist) ? manifest.playlist : [],
+      playlistConfig: manifest,
       activeSchedule: null
     };
   }
@@ -628,6 +646,7 @@ function selectScheduledPlaylist(manifest) {
     ) {
       return {
         playlist: lastAppliedPlaylist,
+        playlistConfig: {},
         activeSchedule: {
           id: lastAppliedScheduleId,
           endAt: new Date(lastAppliedScheduleEndMs).toISOString(),
@@ -636,14 +655,78 @@ function selectScheduledPlaylist(manifest) {
       };
     }
 
-    return { playlist: [], activeSchedule: null };
+    return { playlist: [], playlistConfig: {}, activeSchedule: null };
   }
 
-  const playlist = manifest.playlists.find((candidate) => candidate.id === active.playlistId);
+  // Published manifests can contain repeated playlist IDs. The final entry is
+  // the most recently published representation of that playlist.
+  const playlist = [...manifest.playlists]
+    .reverse()
+    .find((candidate) => candidate.id === active.playlistId);
   return {
     playlist: Array.isArray(playlist?.items) ? playlist.items : [],
+    playlistConfig: playlist || {},
     activeSchedule: active
   };
+}
+
+function clearPlaylistResolution(target) {
+  for (const key of [
+    'width',
+    'height',
+    'renderWidth',
+    'renderHeight',
+    'playlistWidth',
+    'playlistHeight',
+    'resolution',
+    'renderResolution',
+    'playlistResolution'
+  ]) {
+    delete target[key];
+  }
+}
+
+function readResolution(source) {
+  if (!source || typeof source !== 'object') return null;
+
+  const nested = source.playlistResolution || source.renderResolution || source.resolution;
+  if (nested && typeof nested === 'object') {
+    const nestedWidth = Number(nested.width ?? nested.w);
+    const nestedHeight = Number(nested.height ?? nested.h);
+    if (Number.isFinite(nestedWidth) && Number.isFinite(nestedHeight) && nestedWidth > 0 && nestedHeight > 0) {
+      return { width: nestedWidth, height: nestedHeight };
+    }
+  }
+
+  const width = Number(source.playlistWidth ?? source.renderWidth ?? source.width);
+  const height = Number(source.playlistHeight ?? source.renderHeight ?? source.height);
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    return { width, height };
+  }
+
+  return null;
+}
+
+function resolvePlaylistResolution(playlistConfig, items) {
+  const configResolution = readResolution(playlistConfig);
+  if (configResolution) return configResolution;
+
+  if (Array.isArray(items)) {
+    for (const item of items) {
+      const itemResolution = readResolution(item);
+      if (itemResolution) return itemResolution;
+    }
+  }
+
+  return null;
+}
+
+function applyPlaylistResolution(target, resolution) {
+  if (!resolution) return;
+  target.playlistResolution = resolution;
+  target.renderResolution = resolution;
+  target.playlistWidth = resolution.width;
+  target.playlistHeight = resolution.height;
 }
 
 function applyScheduledPlaylist(manifest = readManifestCache()) {
@@ -670,13 +753,17 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
     .map(({ url, ...item }) => item);
   const nextPlaybackMode =
     selected.activeSchedule && nextPlaylist.length > 0 ? 'scheduled' : 'default';
+  const playbackPlaylist = nextPlaybackMode === 'scheduled' ? nextPlaylist : [defaultPlaylistItem];
+  const nextResolution = resolvePlaylistResolution(selected.playlistConfig, nextPlaylist);
   const currentKey = JSON.stringify({
     playbackMode: config.playbackMode || 'default',
+    resolution: readResolution(config),
     playlist: config.playlist || []
   });
   const nextKey = JSON.stringify({
     playbackMode: nextPlaybackMode,
-    playlist: nextPlaylist
+    resolution: nextResolution,
+    playlist: playbackPlaylist
   });
 
   if (selected.activeSchedule && playlist.length > 0 && nextPlaylist.length === 0) {
@@ -704,7 +791,9 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
   config.activeScheduleStartAt = selected.activeSchedule?.startAt || null;
   config.activeScheduleEndAt = selected.activeSchedule?.endAt || null;
   config.appliedAt = new Date().toISOString();
-  config.playlist = nextPlaylist;
+  config.playlist = playbackPlaylist;
+  clearPlaylistResolution(config);
+  applyPlaylistResolution(config, nextResolution);
   writeConfig(config);
   notifyRendererConfigUpdated(config);
   console.info(
@@ -856,6 +945,9 @@ function startManifestSync() {
 }
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-pinch');
 // Allow the renderer (loaded from file://) to re-read config.json from disk,
 // so media synced by the cms-worker starts playing without a restart.

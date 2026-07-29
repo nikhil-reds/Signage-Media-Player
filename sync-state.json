@@ -1,6 +1,6 @@
 {
-  "revision": "2026-07-21T07:31:05.687Z",
-  "syncedAt": "2026-07-21T07:31:06.908Z",
+  "revision": "2026-07-29T09:29:00.359Z",
+  "syncedAt": "2026-07-29T09:29:25.869Z",
   "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
   "media": {
     "media/videos/playlist-f6b4788a-633c-4587-b782-3b9371726770.mp4": {
@@ -26,6 +26,38 @@
     "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4": {
       "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
       "downloadedAt": "2026-07-21T07:29:07.732Z"
+    },
+    "media/videos/playlist-d5dd1273-8477-481e-a548-55262ee14e33.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/d5dd1273-8477-481e-a548-55262ee14e33.mp4",
+      "downloadedAt": "2026-07-28T12:32:10.436Z"
+    },
+    "media/videos/playlist-399f6837-399d-4bb9-b635-ce556e0055c1.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/399f6837-399d-4bb9-b635-ce556e0055c1.mp4",
+      "downloadedAt": "2026-07-28T09:54:00.455Z"
+    },
+    "media/videos/playlist-187a7b52-b424-4319-925d-8d07be0030f3.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/187a7b52-b424-4319-925d-8d07be0030f3.mp4",
+      "downloadedAt": "2026-07-28T10:39:52.746Z"
+    },
+    "media/videos/playlist-e38117d0-afad-409b-8e11-b057c2c31589.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e38117d0-afad-409b-8e11-b057c2c31589.mp4",
+      "downloadedAt": "2026-07-28T12:47:31.807Z"
+    },
+    "media/videos/playlist-91536a28-9276-4779-b4c3-cf0b9188aea8.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/91536a28-9276-4779-b4c3-cf0b9188aea8.mp4",
+      "downloadedAt": "2026-07-28T10:39:53.004Z"
+    },
+    "media/videos/playlist-e04e92da-016d-4c01-92b9-07d51984fd0f.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+      "downloadedAt": "2026-07-28T10:40:33.960Z"
+    },
+    "media/videos/playlist-4fbbb884-0a64-4660-aaf0-99105b9349fc.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/4fbbb884-0a64-4660-aaf0-99105b9349fc.mp4",
+      "downloadedAt": "2026-07-28T12:55:57.861Z"
+    },
+    "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+      "downloadedAt": "2026-07-29T08:33:55.851Z"
     }
   }
 }

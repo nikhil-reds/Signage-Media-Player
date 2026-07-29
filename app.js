@@ -4,8 +4,10 @@
 // end, images show for `durationMs`). The config is re-read on an interval so
 // media synced in by the cms-worker starts playing automatically — no restart.
 class SignagePlayer {
-  constructor(viewport) {
+  constructor(viewport, stage) {
     this.viewport = viewport;
+    this.stage = stage;
+    this.renderSize = { width: 1920, height: 1080 };
     this.defaultItem = {
       id: 'fallback',
       type: 'video',
@@ -27,11 +29,13 @@ class SignagePlayer {
     this.retryTimer = null;
     this.refreshTimer = null;
     this.refreshIntervalMs = 1000;
+    this.resizeObserver = null;
   }
 
   async start() {
     const config = await this.loadConfig();
     this.applyConfig(config, { restart: true });
+    this.listenForViewportChanges();
     this.listenForRuntimeUpdates();
     this.watchConfig();
   }
@@ -110,9 +114,12 @@ class SignagePlayer {
       playlist = [this.normalizeItem(this.defaultItem, 'default')];
     }
 
+    const renderSize = this.resolveRenderSize(config, playlist);
+
     const key = JSON.stringify(
       {
         playbackMode,
+        renderSize,
         playlist: playlist.map((item) => [
           item.src,
           item.type,
@@ -133,9 +140,10 @@ class SignagePlayer {
     this.playlistKey = key;
     this.playbackMode = playbackMode;
     this.playlist = playlist;
+    this.setRenderSize(renderSize);
     this.failedSources.clear();
 
-    if (restart || this.index >= this.playlist.length) {
+    if (changed || restart || this.index >= this.playlist.length) {
       this.index = 0;
     }
 
@@ -160,7 +168,7 @@ class SignagePlayer {
         return;
       }
 
-      this.applyConfig(update, { restart: true });
+      this.applyConfig(update);
     });
   }
 
@@ -185,17 +193,105 @@ class SignagePlayer {
     };
   }
 
+  resolveRenderSize(config, playlist) {
+    const candidates = [
+      config?.playlistResolution,
+      config?.renderResolution,
+      this.readNamedSize(config),
+      playlist.find((item) => Number.isFinite(Number(item.width)) && Number.isFinite(Number(item.height)))
+    ];
+
+    for (const candidate of candidates) {
+      const size = this.readSize(candidate);
+      if (size) return size;
+    }
+
+    console.warn('Playlist resolution is missing; preserving the previous internal render size.');
+    return this.renderSize;
+  }
+
+  readNamedSize(candidate) {
+    if (!candidate || typeof candidate !== 'object') return null;
+
+    const width = Number(candidate.renderWidth ?? candidate.playlistWidth);
+    const height = Number(candidate.renderHeight ?? candidate.playlistHeight);
+
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { width, height };
+  }
+
+  readSize(candidate) {
+    if (!candidate || typeof candidate !== 'object') return null;
+
+    const width = Number(candidate.width ?? candidate.w ?? candidate.renderWidth ?? candidate.playlistWidth);
+    const height = Number(candidate.height ?? candidate.h ?? candidate.renderHeight ?? candidate.playlistHeight);
+
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { width, height };
+  }
+
+  setRenderSize(size) {
+    this.renderSize = size;
+    this.stage.dataset.renderWidth = String(size.width);
+    this.stage.dataset.renderHeight = String(size.height);
+    this.stage.style.setProperty('--playlist-width', `${size.width}px`);
+    this.stage.style.setProperty('--playlist-height', `${size.height}px`);
+    this.scaleStageToViewport();
+    console.info(`Internal playlist canvas: ${size.width}x${size.height}.`);
+  }
+
+  listenForViewportChanges() {
+    window.addEventListener('resize', () => this.scaleStageToViewport());
+
+    if (!window.ResizeObserver) {
+      this.scaleStageToViewport();
+      return;
+    }
+
+    this.resizeObserver = new ResizeObserver(() => this.scaleStageToViewport());
+    this.resizeObserver.observe(this.viewport);
+  }
+
+  scaleStageToViewport() {
+    const viewportWidth = this.viewport.clientWidth;
+    const viewportHeight = this.viewport.clientHeight;
+    const { width, height } = this.renderSize;
+
+    if (viewportWidth <= 0 || viewportHeight <= 0 || width <= 0 || height <= 0) return;
+
+    const scale = Math.min(viewportWidth / width, viewportHeight / height);
+    this.stage.style.setProperty('--playlist-scale', String(scale));
+  }
+
   applyLayout(element, item) {
     element.style.objectFit = item.fit || 'scale-down';
     element.style.objectPosition = item.position || 'center';
-    if (Number.isFinite(item.width) && item.width > 0 && Number.isFinite(item.height) && item.height > 0) {
-      const ratio = item.width / item.height;
-      element.style.width = `min(100vw, calc(100vh * ${ratio}))`;
-      element.style.height = `min(100vh, calc(100vw / ${ratio}))`;
-    } else {
-      element.style.width = '100vw';
-      element.style.height = '100vh';
+
+    const x = Number(item.x ?? item.left);
+    const y = Number(item.y ?? item.top);
+    const width = Number(item.width);
+    const height = Number(item.height);
+    const hasPosition = Number.isFinite(x) || Number.isFinite(y);
+    const hasSize = Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0;
+
+    element.style.inset = '';
+    element.style.left = hasPosition && Number.isFinite(x) ? `${x}px` : '0';
+    element.style.top = hasPosition && Number.isFinite(y) ? `${y}px` : '0';
+
+    if (hasPosition || (hasSize && (width !== this.renderSize.width || height !== this.renderSize.height))) {
+      element.style.width = hasSize ? `${width}px` : '100%';
+      element.style.height = hasSize ? `${height}px` : '100%';
+      return;
     }
+
+    element.style.width = '100%';
+    element.style.height = '100%';
   }
 
   playCurrent() {
@@ -221,7 +317,7 @@ class SignagePlayer {
     }
 
     if (!element.isConnected) {
-      this.viewport.appendChild(element);
+      this.stage.appendChild(element);
     }
 
     element.classList.remove('media-element--pending');
@@ -240,17 +336,8 @@ class SignagePlayer {
     this.failedSources.add(item.src);
 
     if (this.failedSources.size >= this.playlist.length) {
-      if (this.playbackMode === 'scheduled') {
-        console.warn('Scheduled media failed; retrying scheduled video instead of playing default.');
-        this.retryTimer = setTimeout(() => {
-          this.failedSources.clear();
-          this.playCurrent();
-        }, 1000);
-        return;
-      }
-
       console.warn('No configured media could be loaded; playing default video.');
-      this.applyConfig({ playlist: [this.defaultItem] }, { restart: true });
+      this.applyConfig({ playbackMode: 'default', playlist: [this.defaultItem] }, { restart: true });
       return;
     }
 
@@ -265,7 +352,6 @@ class SignagePlayer {
 
     const video = document.createElement('video');
     video.className = 'media-element media-element--pending';
-    video.src = item.src;
     this.applyLayout(video, item);
     video.autoplay = true;
     video.muted = item.muted;
@@ -274,6 +360,7 @@ class SignagePlayer {
     video.preload = 'auto';
     video.controls = false;
     video.disablePictureInPicture = true;
+    video.disableRemotePlayback = true;
     video.setAttribute('webkit-playsinline', '');
     video.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
 
@@ -282,15 +369,7 @@ class SignagePlayer {
 
     video.addEventListener('ended', () => {
       console.info(`Video ended: ${item.src} (mode=${item.playbackMode}, loopAlone=${loopAlone})`);
-      if (!loopAlone) {
-        this.next();
-        return;
-      }
-
-      video.currentTime = 0;
-      video.play().catch(() => {
-        this.retryTimer = setTimeout(() => this.playCurrent(), 500);
-      });
+      if (!loopAlone) this.next();
     });
 
     video.addEventListener('error', () => {
@@ -308,8 +387,8 @@ class SignagePlayer {
     });
 
     this.pendingElement = video;
-    this.viewport.appendChild(video);
-    video.load();
+    this.stage.appendChild(video);
+    video.src = item.src;
   }
 
   mountImage(item) {
@@ -327,7 +406,7 @@ class SignagePlayer {
       this.handleMediaError(item);
     });
 
-    this.viewport.appendChild(img);
+    this.stage.appendChild(img);
 
     const durationMs = Number.isFinite(item.durationMs) && item.durationMs > 0
       ? item.durationMs
@@ -344,13 +423,14 @@ class SignagePlayer {
     const error = document.createElement('div');
     error.className = 'player-error';
     error.textContent = message;
-    this.viewport.replaceChildren(error);
+    this.stage.replaceChildren(error);
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const viewport = document.getElementById('viewport');
-  const player = new SignagePlayer(viewport);
+  const stage = document.getElementById('playlist-stage');
+  const player = new SignagePlayer(viewport, stage);
   window.playerInstance = player;
   player.start();
 });

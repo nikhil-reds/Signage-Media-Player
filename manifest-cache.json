@@ -1,118 +1,239 @@
 {
   "schemaVersion": 1,
   "deviceId": "SL-PLAYER-001",
-  "revision": "2026-07-21T07:31:05.687Z",
-  "playlist": [
-    {
-      "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
-      "type": "video",
-      "src": "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
-      "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
-      "loop": true,
-      "muted": false
-    }
-  ],
+  "serverNow": "2026-07-29T09:29:00.357Z",
+  "playlist": [],
   "playlists": [
     {
-      "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "id": "d5dd1273-8477-481e-a548-55262ee14e33",
       "items": [
         {
-          "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+          "id": "d5dd1273-8477-481e-a548-55262ee14e33",
           "type": "video",
-          "src": "media/videos/playlist-69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+          "src": "media/videos/playlist-d5dd1273-8477-481e-a548-55262ee14e33.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/d5dd1273-8477-481e-a548-55262ee14e33.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
         }
       ]
     },
     {
-      "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+      "id": "d5dd1273-8477-481e-a548-55262ee14e33",
       "items": [
         {
-          "id": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+          "id": "d5dd1273-8477-481e-a548-55262ee14e33",
           "type": "video",
-          "src": "media/videos/playlist-ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/ea76e2ff-6672-4914-8df6-37ffcb4748a5.mp4",
+          "src": "media/videos/playlist-d5dd1273-8477-481e-a548-55262ee14e33.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/d5dd1273-8477-481e-a548-55262ee14e33.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
         }
       ]
     },
     {
-      "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+      "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
       "items": [
         {
-          "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+          "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
           "type": "video",
-          "src": "media/videos/playlist-94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+          "src": "media/videos/playlist-e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 2880,
+          "height": 1080
         }
       ]
     },
     {
-      "id": "e9e3db7f-6d6a-44ee-b363-5faed82a518b",
+      "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
       "items": [
         {
-          "id": "e9e3db7f-6d6a-44ee-b363-5faed82a518b",
+          "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
           "type": "video",
-          "src": "media/videos/playlist-e9e3db7f-6d6a-44ee-b363-5faed82a518b.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e9e3db7f-6d6a-44ee-b363-5faed82a518b.mp4",
+          "src": "media/videos/playlist-e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 2880,
+          "height": 1080
         }
       ]
     },
     {
-      "id": "f6b4788a-633c-4587-b782-3b9371726770",
+      "id": "d5dd1273-8477-481e-a548-55262ee14e33",
       "items": [
         {
-          "id": "f6b4788a-633c-4587-b782-3b9371726770",
+          "id": "d5dd1273-8477-481e-a548-55262ee14e33",
           "type": "video",
-          "src": "media/videos/playlist-f6b4788a-633c-4587-b782-3b9371726770.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/f6b4788a-633c-4587-b782-3b9371726770.mp4",
+          "src": "media/videos/playlist-d5dd1273-8477-481e-a548-55262ee14e33.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/d5dd1273-8477-481e-a548-55262ee14e33.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
         }
       ]
     },
     {
-      "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "id": "e38117d0-afad-409b-8e11-b057c2c31589",
       "items": [
         {
-          "id": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+          "id": "e38117d0-afad-409b-8e11-b057c2c31589",
           "type": "video",
-          "src": "media/videos/playlist-69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69e0706c-29e9-446e-9ace-9f6f919b2fba.mp4",
+          "src": "media/videos/playlist-e38117d0-afad-409b-8e11-b057c2c31589.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e38117d0-afad-409b-8e11-b057c2c31589.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
         }
       ]
     },
     {
-      "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+      "id": "4fbbb884-0a64-4660-aaf0-99105b9349fc",
       "items": [
         {
-          "id": "94ff1f33-6137-4614-98de-58e1c9542e5c",
+          "id": "4fbbb884-0a64-4660-aaf0-99105b9349fc",
           "type": "video",
-          "src": "media/videos/playlist-94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/94ff1f33-6137-4614-98de-58e1c9542e5c.mp4",
+          "src": "media/videos/playlist-4fbbb884-0a64-4660-aaf0-99105b9349fc.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/4fbbb884-0a64-4660-aaf0-99105b9349fc.mp4",
           "loop": true,
-          "muted": false
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+      "items": [
+        {
+          "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+          "type": "video",
+          "src": "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 2880,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "187a7b52-b424-4319-925d-8d07be0030f3",
+      "items": [
+        {
+          "id": "187a7b52-b424-4319-925d-8d07be0030f3",
+          "type": "video",
+          "src": "media/videos/playlist-187a7b52-b424-4319-925d-8d07be0030f3.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/187a7b52-b424-4319-925d-8d07be0030f3.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+      "items": [
+        {
+          "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+          "type": "video",
+          "src": "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 2880,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+      "items": [
+        {
+          "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+          "type": "video",
+          "src": "media/videos/playlist-e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 2880,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "e38117d0-afad-409b-8e11-b057c2c31589",
+      "items": [
+        {
+          "id": "e38117d0-afad-409b-8e11-b057c2c31589",
+          "type": "video",
+          "src": "media/videos/playlist-e38117d0-afad-409b-8e11-b057c2c31589.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e38117d0-afad-409b-8e11-b057c2c31589.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "91536a28-9276-4779-b4c3-cf0b9188aea8",
+      "items": [
+        {
+          "id": "91536a28-9276-4779-b4c3-cf0b9188aea8",
+          "type": "video",
+          "src": "media/videos/playlist-91536a28-9276-4779-b4c3-cf0b9188aea8.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/91536a28-9276-4779-b4c3-cf0b9188aea8.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
         }
       ]
     }
   ],
   "schedules": [
     {
-      "id": "b429928b-f27b-4db4-9f4d-63053fef2819",
-      "name": "test the playlist beta",
-      "playlistId": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
+      "id": "7cdf2439-75cc-4151-9676-c4677770b6e8",
+      "name": "LG 4K",
+      "playlistId": "d5dd1273-8477-481e-a548-55262ee14e33",
       "priority": 100,
-      "startAt": "2026-07-20T12:50:00.000Z",
-      "endAt": "2026-07-20T11:30:00.000Z",
+      "startAt": "2026-07-21T12:05:00.000Z",
+      "endAt": "2026-07-21T12:10:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -124,12 +245,12 @@
       ]
     },
     {
-      "id": "00f917fd-fb73-4c6d-a760-cbd0223f402b",
-      "name": "test RGB",
-      "playlistId": "ea76e2ff-6672-4914-8df6-37ffcb4748a5",
+      "id": "bcb9a218-c43b-436c-a7fa-6a9ca4a3d3bf",
+      "name": "test with birghtsign",
+      "playlistId": "d5dd1273-8477-481e-a548-55262ee14e33",
       "priority": 100,
-      "startAt": "2026-07-21T07:30:00.000Z",
-      "endAt": "2026-07-21T07:35:00.000Z",
+      "startAt": "2026-07-24T12:30:00.000Z",
+      "endAt": "2026-07-24T12:35:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -141,12 +262,12 @@
       ]
     },
     {
-      "id": "6e0dbf3a-b452-4ee1-9103-9819feed99be",
-      "name": "ad01",
-      "playlistId": "94ff1f33-6137-4614-98de-58e1c9542e5c",
-      "priority": 80,
-      "startAt": "2026-07-21T07:05:00.000Z",
-      "endAt": "2026-07-21T07:10:00.000Z",
+      "id": "13f0940b-f169-4f00-8fdc-e8ab7c788f1b",
+      "name": "Test",
+      "playlistId": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+      "priority": 99,
+      "startAt": "2026-07-28T11:45:00.000Z",
+      "endAt": "2026-07-28T12:00:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -158,12 +279,12 @@
       ]
     },
     {
-      "id": "507dc466-78da-478e-ac15-7614cb4ef64d",
-      "name": "Tripti",
-      "playlistId": "e9e3db7f-6d6a-44ee-b363-5faed82a518b",
-      "priority": 40,
-      "startAt": "2026-07-15T07:00:00.000Z",
-      "endAt": "2026-07-15T14:40:00.000Z",
+      "id": "e24f67f9-d2a0-4b7e-a34a-c22ecb1dc767",
+      "name": "testAgian",
+      "playlistId": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+      "priority": 99,
+      "startAt": "2026-07-28T12:25:00.000Z",
+      "endAt": "2026-07-28T12:30:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -175,46 +296,148 @@
       ]
     },
     {
-      "id": "a8ae7eef-dfb3-401f-a151-59baefd1d3ed",
-      "name": "testaplha",
-      "playlistId": "f6b4788a-633c-4587-b782-3b9371726770",
+      "id": "d5189b6e-4665-4b1f-bf11-b596bd7fab0e",
+      "name": "test Again",
+      "playlistId": "d5dd1273-8477-481e-a548-55262ee14e33",
+      "priority": 99,
+      "startAt": "2026-07-28T12:35:00.000Z",
+      "endAt": "2026-07-28T12:40:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "9fde9019-f52b-4aa6-8909-b1ebd5c33212",
+      "name": "testAgain",
+      "playlistId": "e38117d0-afad-409b-8e11-b057c2c31589",
+      "priority": 99,
+      "startAt": "2026-07-28T12:50:00.000Z",
+      "endAt": "2026-07-28T12:55:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "512f8ccb-0eb4-4826-a38f-b5e75432966b",
+      "name": "cover-image",
+      "playlistId": "4fbbb884-0a64-4660-aaf0-99105b9349fc",
+      "priority": 99,
+      "startAt": "2026-07-28T13:00:00.000Z",
+      "endAt": "2026-07-28T13:05:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "65b11cf4-31ee-4240-82ba-676a8c26c72a",
+      "name": "Test-Sheduled-Res",
+      "playlistId": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+      "priority": 99,
+      "startAt": "2026-07-29T08:55:00.000Z",
+      "endAt": "2026-07-29T09:00:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "4f53df6d-b5ae-4050-8027-d05525795879",
+      "name": "Experince",
+      "playlistId": "187a7b52-b424-4319-925d-8d07be0030f3",
+      "priority": 98,
+      "startAt": "2026-07-27T13:20:00.000Z",
+      "endAt": "2026-07-27T13:25:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "5c051f73-7521-4920-8388-e85716582938",
+      "name": "ForceCPU",
+      "playlistId": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+      "priority": 97,
+      "startAt": "2026-07-29T09:15:00.000Z",
+      "endAt": "2026-07-29T09:20:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "459c4d81-e673-47d8-a730-af48be5e2879",
+      "name": "fix issue",
+      "playlistId": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+      "priority": 96,
+      "startAt": "2026-07-28T12:10:00.000Z",
+      "endAt": "2026-07-28T12:15:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "b500dd07-5c77-496b-9120-70829b0d8d97",
+      "name": "test the sheduled ",
+      "playlistId": "e38117d0-afad-409b-8e11-b057c2c31589",
+      "priority": 50,
+      "startAt": "2026-07-24T05:35:00.000Z",
+      "endAt": "2026-07-24T05:40:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "a37edcac-b7f3-4021-a479-e5f5f5c6df63",
+      "name": "test2",
+      "playlistId": "91536a28-9276-4779-b4c3-cf0b9188aea8",
       "priority": 30,
-      "startAt": "2026-07-20T10:20:00.000Z",
-      "endAt": "2026-07-20T11:30:00.000Z",
-      "daysOfWeek": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ]
-    },
-    {
-      "id": "b91018d7-d398-497b-8880-aa272d8a223f",
-      "name": "test beta 99999",
-      "playlistId": "69e0706c-29e9-446e-9ace-9f6f919b2fba",
-      "priority": 30,
-      "startAt": "2026-07-20T11:40:00.000Z",
-      "endAt": "2026-07-20T11:30:00.000Z",
-      "daysOfWeek": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ]
-    },
-    {
-      "id": "00200a61-aabd-464c-91d3-dc69c1782aad",
-      "name": "dgedhgresherh",
-      "playlistId": "94ff1f33-6137-4614-98de-58e1c9542e5c",
-      "priority": 30,
-      "startAt": "2026-07-21T07:25:00.000Z",
-      "endAt": "2026-07-21T07:30:00.000Z",
+      "startAt": "2026-07-24T05:45:00.000Z",
+      "endAt": "2026-07-24T06:00:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -225,5 +448,6 @@
         7
       ]
     }
-  ]
+  ],
+  "revision": "2026-07-29T09:29:00.359Z"
 }
