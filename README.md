@@ -155,6 +155,7 @@ Manifest shape:
   "playlists": [
     {
       "id": "playlist-id",
+      "playlistResolution": { "width": 2880, "height": 1080 },
       "items": []
     }
   ],
@@ -208,6 +209,7 @@ Endpoints:
 
 ```text
 GET  /health
+GET  /api/status
 POST /api/media/:folder/:fileName
 POST /api/playlist/add
 POST /api/playlist/replace
@@ -226,6 +228,10 @@ The worker can push to this API by setting:
 PLAYER_API_URL=http://192.168.1.25:3030
 PLAYER_API_TOKEN=change-me
 ```
+
+`GET /api/status` reports the active playlist resolution, the renderer's
+internal canvas, presentation scale, and video frame counters. Use it to
+verify an installed Windows player without relying on the display resolution.
 
 For scheduled production-style playback, manifest pull mode is preferred over
 LAN push mode.

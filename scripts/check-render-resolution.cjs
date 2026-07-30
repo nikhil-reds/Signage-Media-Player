@@ -18,6 +18,22 @@ app.whenReady().then(async () => {
 
   await window.loadFile(path.join(__dirname, '..', 'index.html'));
   await new Promise((resolve) => setTimeout(resolve, 500));
+  await window.webContents.executeJavaScript(`
+    window.playerInstance.applyConfig({
+      playbackMode: 'scheduled',
+      playlistResolution: { width: ${expectedWidth}, height: ${expectedHeight} },
+      playlist: [{
+        id: 'resolution-check',
+        type: 'video',
+        src: 'media/videos/default-video.mp4',
+        width: ${expectedWidth},
+        height: ${expectedHeight},
+        muted: true,
+        loop: true
+      }]
+    }, { restart: true });
+  `);
+  await new Promise((resolve) => setTimeout(resolve, 100));
 
   const result = await window.webContents.executeJavaScript(`
     (() => {

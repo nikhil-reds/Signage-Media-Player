@@ -173,6 +173,18 @@ function createWindow() {
   });
 
   mainWindow.setMenu(null);
+  mainWindow.webContents.setZoomFactor(1);
+  void mainWindow.webContents.setVisualZoomLevelLimits(1, 1).catch((error) => {
+    console.warn('Unable to lock visual zoom.', error);
+  });
+  mainWindow.webContents.on('zoom-changed', (event) => {
+    event.preventDefault();
+    mainWindow?.webContents.setZoomFactor(1);
+  });
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    const zoomKey = input.key === '+' || input.key === '=' || input.key === '-' || input.key === '0';
+    if ((input.control || input.meta) && zoomKey) event.preventDefault();
+  });
   mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.on('closed', () => {
     mainWindow = undefined;
@@ -310,6 +322,11 @@ function startLanServer() {
 
       if (!authorize(request, response)) return;
 
+      if (request.method === 'GET' && url.pathname === '/api/status') {
+        sendJson(response, 200, await getPlayerStatus());
+        return;
+      }
+
       if (request.method === 'POST' && url.pathname.startsWith('/api/media/')) {
         const [, , , folder, ...nameParts] = url.pathname.split('/');
         const fileName = decodeURIComponent(nameParts.join('/'));
@@ -343,8 +360,13 @@ function startLanServer() {
         } else {
           config.playlist.push(item);
         }
+        normalizeLocalPlaylistResolution(config);
         writeConfig(config);
-        sendJson(response, 200, { ok: true, playlistLength: config.playlist.length });
+        sendJson(response, 200, {
+          ok: true,
+          playlistLength: config.playlist.length,
+          playlistResolution: config.playlistResolution || null
+        });
         return;
       }
 
@@ -352,8 +374,13 @@ function startLanServer() {
         const body = await readJsonBody(request);
         const config = readConfig();
         config.playlist = Array.isArray(body.playlist) ? body.playlist : [];
+        normalizeLocalPlaylistResolution(config, readExplicitPlaylistResolution(body));
         writeConfig(config);
-        sendJson(response, 200, { ok: true, playlistLength: config.playlist.length });
+        sendJson(response, 200, {
+          ok: true,
+          playlistLength: config.playlist.length,
+          playlistResolution: config.playlistResolution || null
+        });
         return;
       }
 
@@ -361,8 +388,13 @@ function startLanServer() {
         const body = await readJsonBody(request);
         const config = readConfig();
         config.playlist = config.playlist.filter((entry) => entry.src !== body.src);
+        normalizeLocalPlaylistResolution(config);
         writeConfig(config);
-        sendJson(response, 200, { ok: true, playlistLength: config.playlist.length });
+        sendJson(response, 200, {
+          ok: true,
+          playlistLength: config.playlist.length,
+          playlistResolution: config.playlistResolution || null
+        });
         return;
       }
 
@@ -686,10 +718,10 @@ function clearPlaylistResolution(target) {
   }
 }
 
-function readResolution(source) {
+function readExplicitPlaylistResolution(source) {
   if (!source || typeof source !== 'object') return null;
 
-  const nested = source.playlistResolution || source.renderResolution || source.resolution;
+  const nested = source.playlistResolution;
   if (nested && typeof nested === 'object') {
     const nestedWidth = Number(nested.width ?? nested.w);
     const nestedHeight = Number(nested.height ?? nested.h);
@@ -698,8 +730,8 @@ function readResolution(source) {
     }
   }
 
-  const width = Number(source.playlistWidth ?? source.renderWidth ?? source.width);
-  const height = Number(source.playlistHeight ?? source.renderHeight ?? source.height);
+  const width = Number(source.playlistWidth);
+  const height = Number(source.playlistHeight);
   if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
     return { width, height };
   }
@@ -707,18 +739,37 @@ function readResolution(source) {
   return null;
 }
 
-function resolvePlaylistResolution(playlistConfig, items) {
-  const configResolution = readResolution(playlistConfig);
-  if (configResolution) return configResolution;
+function derivePlaylistResolution(items) {
+  const playableItems = Array.isArray(items) ? items.filter((item) => !item?.default) : [];
+  if (playableItems.length === 0) return null;
 
-  if (Array.isArray(items)) {
-    for (const item of items) {
-      const itemResolution = readResolution(item);
-      if (itemResolution) return itemResolution;
+  let width = 0;
+  let height = 0;
+  for (const item of playableItems) {
+    const itemWidth = Number(item?.width);
+    const itemHeight = Number(item?.height);
+    const x = Number(item?.x ?? item?.left ?? 0);
+    const y = Number(item?.y ?? item?.top ?? 0);
+    if (
+      !Number.isFinite(itemWidth) || itemWidth <= 0 ||
+      !Number.isFinite(itemHeight) || itemHeight <= 0 ||
+      !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0
+    ) {
+      return null;
     }
+    width = Math.max(width, x + itemWidth);
+    height = Math.max(height, y + itemHeight);
   }
 
-  return null;
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+function resolvePlaylistResolution(playlistConfig, items) {
+  const configResolution = readExplicitPlaylistResolution(playlistConfig);
+  if (configResolution) return configResolution;
+
+  const derivedResolution = derivePlaylistResolution(items);
+  return derivedResolution;
 }
 
 function applyPlaylistResolution(target, resolution) {
@@ -727,6 +778,72 @@ function applyPlaylistResolution(target, resolution) {
   target.renderResolution = resolution;
   target.playlistWidth = resolution.width;
   target.playlistHeight = resolution.height;
+}
+
+function normalizeLocalPlaylistResolution(config, explicitResolution = null) {
+  clearPlaylistResolution(config);
+  applyPlaylistResolution(
+    config,
+    explicitResolution || derivePlaylistResolution(config.playlist)
+  );
+}
+
+async function getRendererStatus() {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+
+  try {
+    return await mainWindow.webContents.executeJavaScript(`
+      (() => {
+        const stage = document.getElementById('playlist-stage');
+        const media = document.querySelector('.media-element:not(.media-element--pending)');
+        const style = stage ? getComputedStyle(stage) : null;
+        const quality = media?.getVideoPlaybackQuality?.();
+        return {
+          canvas: stage ? {
+            width: Number(stage.dataset.renderWidth),
+            height: Number(stage.dataset.renderHeight),
+            cssWidth: style.width,
+            cssHeight: style.height,
+            presentationScale: style.getPropertyValue('--playlist-scale').trim()
+          } : null,
+          media: media ? {
+            src: media.getAttribute('src'),
+            paused: Boolean(media.paused),
+            currentTime: Number(media.currentTime?.toFixed?.(3) || 0),
+            videoWidth: Number(media.videoWidth || 0),
+            videoHeight: Number(media.videoHeight || 0),
+            droppedFrames: Number(quality?.droppedVideoFrames || 0),
+            totalFrames: Number(quality?.totalVideoFrames || 0)
+          } : null
+        };
+      })()
+    `);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function getPlayerStatus() {
+  const config = readConfig();
+  return {
+    ok: true,
+    playbackMode: config.playbackMode || 'default',
+    activeSchedule: {
+      id: config.activeScheduleId || null,
+      name: config.activeScheduleName || null,
+      startAt: config.activeScheduleStartAt || null,
+      endAt: config.activeScheduleEndAt || null
+    },
+    playlistResolution: readExplicitPlaylistResolution(config),
+    playlist: (config.playlist || []).map((item) => ({
+      id: item.id || null,
+      type: item.type || null,
+      src: item.src || null,
+      width: Number(item.width || 0),
+      height: Number(item.height || 0)
+    })),
+    renderer: await getRendererStatus()
+  };
 }
 
 function applyScheduledPlaylist(manifest = readManifestCache()) {
@@ -757,7 +874,7 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
   const nextResolution = resolvePlaylistResolution(selected.playlistConfig, nextPlaylist);
   const currentKey = JSON.stringify({
     playbackMode: config.playbackMode || 'default',
-    resolution: readResolution(config),
+    resolution: readExplicitPlaylistResolution(config),
     playlist: config.playlist || []
   });
   const nextKey = JSON.stringify({

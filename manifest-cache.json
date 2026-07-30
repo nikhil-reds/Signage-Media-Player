@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "deviceId": "SL-PLAYER-001",
-  "serverNow": "2026-07-29T09:29:00.357Z",
+  "serverNow": "2026-07-29T12:00:47.263Z",
   "playlist": [],
   "playlists": [
     {
@@ -124,23 +124,6 @@
       ]
     },
     {
-      "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
-      "items": [
-        {
-          "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
-          "type": "video",
-          "src": "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
-          "loop": true,
-          "muted": false,
-          "fit": "scale-down",
-          "position": "center",
-          "width": 2880,
-          "height": 1080
-        }
-      ]
-    },
-    {
       "id": "187a7b52-b424-4319-925d-8d07be0030f3",
       "items": [
         {
@@ -153,23 +136,6 @@
           "fit": "scale-down",
           "position": "center",
           "width": 1920,
-          "height": 1080
-        }
-      ]
-    },
-    {
-      "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
-      "items": [
-        {
-          "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
-          "type": "video",
-          "src": "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
-          "loop": true,
-          "muted": false,
-          "fit": "scale-down",
-          "position": "center",
-          "width": 2880,
           "height": 1080
         }
       ]
@@ -347,46 +313,12 @@
       ]
     },
     {
-      "id": "65b11cf4-31ee-4240-82ba-676a8c26c72a",
-      "name": "Test-Sheduled-Res",
-      "playlistId": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
-      "priority": 99,
-      "startAt": "2026-07-29T08:55:00.000Z",
-      "endAt": "2026-07-29T09:00:00.000Z",
-      "daysOfWeek": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ]
-    },
-    {
       "id": "4f53df6d-b5ae-4050-8027-d05525795879",
       "name": "Experince",
       "playlistId": "187a7b52-b424-4319-925d-8d07be0030f3",
       "priority": 98,
       "startAt": "2026-07-27T13:20:00.000Z",
       "endAt": "2026-07-27T13:25:00.000Z",
-      "daysOfWeek": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7
-      ]
-    },
-    {
-      "id": "5c051f73-7521-4920-8388-e85716582938",
-      "name": "ForceCPU",
-      "playlistId": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
-      "priority": 97,
-      "startAt": "2026-07-29T09:15:00.000Z",
-      "endAt": "2026-07-29T09:20:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -449,5 +381,5 @@
       ]
     }
   ],
-  "revision": "2026-07-29T09:29:00.359Z"
+  "revision": "2026-07-29T12:00:47.263Z"
 }

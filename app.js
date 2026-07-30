@@ -7,7 +7,8 @@ class SignagePlayer {
   constructor(viewport, stage) {
     this.viewport = viewport;
     this.stage = stage;
-    this.renderSize = { width: 1920, height: 1080 };
+    this.defaultRenderSize = { width: 1920, height: 1080 };
+    this.renderSize = this.defaultRenderSize;
     this.defaultItem = {
       id: 'fallback',
       type: 'video',
@@ -196,9 +197,8 @@ class SignagePlayer {
   resolveRenderSize(config, playlist) {
     const candidates = [
       config?.playlistResolution,
-      config?.renderResolution,
       this.readNamedSize(config),
-      playlist.find((item) => Number.isFinite(Number(item.width)) && Number.isFinite(Number(item.height)))
+      this.derivePlaylistSize(playlist)
     ];
 
     for (const candidate of candidates) {
@@ -206,15 +206,40 @@ class SignagePlayer {
       if (size) return size;
     }
 
-    console.warn('Playlist resolution is missing; preserving the previous internal render size.');
-    return this.renderSize;
+    console.warn('Playlist canvas is missing; using the fixed 1920x1080 default canvas.');
+    return this.defaultRenderSize;
+  }
+
+  derivePlaylistSize(playlist) {
+    const items = playlist.filter((item) => !item.default);
+    if (items.length === 0) return null;
+
+    let width = 0;
+    let height = 0;
+    for (const item of items) {
+      const itemWidth = Number(item.width);
+      const itemHeight = Number(item.height);
+      const x = Number(item.x ?? item.left ?? 0);
+      const y = Number(item.y ?? item.top ?? 0);
+      if (
+        !Number.isFinite(itemWidth) || itemWidth <= 0 ||
+        !Number.isFinite(itemHeight) || itemHeight <= 0 ||
+        !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0
+      ) {
+        return null;
+      }
+      width = Math.max(width, x + itemWidth);
+      height = Math.max(height, y + itemHeight);
+    }
+
+    return width > 0 && height > 0 ? { width, height } : null;
   }
 
   readNamedSize(candidate) {
     if (!candidate || typeof candidate !== 'object') return null;
 
-    const width = Number(candidate.renderWidth ?? candidate.playlistWidth);
-    const height = Number(candidate.renderHeight ?? candidate.playlistHeight);
+    const width = Number(candidate.playlistWidth);
+    const height = Number(candidate.playlistHeight);
 
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
       return null;
@@ -226,8 +251,8 @@ class SignagePlayer {
   readSize(candidate) {
     if (!candidate || typeof candidate !== 'object') return null;
 
-    const width = Number(candidate.width ?? candidate.w ?? candidate.renderWidth ?? candidate.playlistWidth);
-    const height = Number(candidate.height ?? candidate.h ?? candidate.renderHeight ?? candidate.playlistHeight);
+    const width = Number(candidate.width ?? candidate.w ?? candidate.playlistWidth);
+    const height = Number(candidate.height ?? candidate.h ?? candidate.playlistHeight);
 
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
       return null;

@@ -1,6 +1,7 @@
 {
-  "revision": "2026-07-29T09:29:00.359Z",
-  "syncedAt": "2026-07-29T09:29:25.869Z",
+  "revision": "2026-07-29T12:00:47.263Z",
+  "contentHash": "b4bb2c43041e8430cecd70334cbdc729159b8140ff9b26090754d19c0b447621",
+  "syncedAt": "2026-07-29T12:00:47.545Z",
   "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
   "media": {
     "media/videos/playlist-f6b4788a-633c-4587-b782-3b9371726770.mp4": {
@@ -57,7 +58,7 @@
     },
     "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4": {
       "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
-      "downloadedAt": "2026-07-29T08:33:55.851Z"
+      "downloadedAt": "2026-07-29T09:55:16.421Z"
     }
   }
 }
