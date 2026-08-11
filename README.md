@@ -124,7 +124,7 @@ Environment variables override `config.json`:
 PLAYER_MANIFEST_URL=https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json
 PLAYER_CDN_URL=https://d1zue4w6hf1jx0.cloudfront.net
 PLAYER_SYNC_INTERVAL_MS=30000
-PLAYER_WS_URL=ws://localhost:3001/ws/player
+PLAYER_WS_URL=ws://localhost:3031/ws/player
 PLAYER_DEVICE_ID=SL-PLAYER-001
 PLAYER_DEVICE_TOKEN=change-me
 PLAYER_LAN_PORT=3030
