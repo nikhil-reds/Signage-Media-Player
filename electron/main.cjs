@@ -1,4 +1,4 @@
-const { app, BrowserWindow, powerSaveBlocker, protocol } = require('electron');
+const { app, BrowserWindow, powerSaveBlocker, protocol, screen } = require('electron');
 const WebSocket = require('ws');
 const http = require('node:http');
 const fs = require('node:fs');
@@ -92,7 +92,7 @@ const playerWsUrl =
   process.env.PLAYER_WS_URL ||
   startupConfig.playerWsUrl ||
   startupConfig.webSocketUrl ||
-  'ws://localhost:3001/ws/player';
+  'ws://localhost:3031/ws/player';
 const manifestUrl =
   process.env.PLAYER_MANIFEST_URL ||
   startupConfig.manifestUrl ||
@@ -111,6 +111,11 @@ const cdnBaseUrl =
   startupConfig.cdnBaseUrl ||
   '';
 const s3BaseUrl = process.env.PLAYER_S3_BASE_URL || startupConfig.s3BaseUrl || '';
+const playerWindowMode = process.env.PLAYER_WINDOW_MODE || startupConfig.windowMode || 'windowed';
+const playerKioskMode =
+  playerWindowMode === 'kiosk' ||
+  process.env.PLAYER_KIOSK === '1' ||
+  startupConfig.kiosk === true;
 
 function resolvePlayerProtocolPath(requestUrl) {
   const url = new URL(requestUrl);
@@ -152,12 +157,21 @@ function registerPlayerProtocol() {
 }
 
 function createWindow() {
+  const display = screen.getPrimaryDisplay();
+  const bounds = playerKioskMode ? display.bounds : display.workArea;
+  const width = playerKioskMode ? bounds.width : Math.min(1920, bounds.width);
+  const height = playerKioskMode ? bounds.height : Math.min(1080, bounds.height);
+  const x = bounds.x + Math.max(0, Math.round((bounds.width - width) / 2));
+  const y = bounds.y + Math.max(0, Math.round((bounds.height - height) / 2));
+
   mainWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    fullscreen: true,
-    kiosk: true,
-    frame: false,
+    x,
+    y,
+    width,
+    height,
+    fullscreen: playerKioskMode,
+    kiosk: playerKioskMode,
+    frame: !playerKioskMode,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
     show: false,
@@ -167,12 +181,14 @@ function createWindow() {
       sandbox: true,
       backgroundThrottling: false,
       preload: path.join(__dirname, 'preload.cjs'),
+      webviewTag: true,
       devTools: false,
       autoplayPolicy: 'no-user-gesture-required'
     }
   });
 
   mainWindow.setMenu(null);
+  mainWindow.setFullScreenable(true);
   mainWindow.webContents.setZoomFactor(1);
   void mainWindow.webContents.setVisualZoomLevelLimits(1, 1).catch((error) => {
     console.warn('Unable to lock visual zoom.', error);
@@ -185,7 +201,24 @@ function createWindow() {
     const zoomKey = input.key === '+' || input.key === '=' || input.key === '-' || input.key === '0';
     if ((input.control || input.meta) && zoomKey) event.preventDefault();
   });
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
+    if (!targetUrl.startsWith('signlink://player/')) {
+      event.preventDefault();
+    }
+  });
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.setBounds({ x, y, width, height });
+    if (playerKioskMode) {
+      mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+      mainWindow.setFullScreen(true);
+      mainWindow.setKiosk(true);
+    }
+    mainWindow.show();
+    mainWindow.moveTop();
+    mainWindow.focus();
+    app.focus({ steal: true });
+  });
   mainWindow.on('closed', () => {
     mainWindow = undefined;
   });
@@ -283,7 +316,7 @@ function writeManifestCache(manifest) {
 }
 
 function safeMediaPath(folder, fileName) {
-  if (!['videos', 'images', 'audio'].includes(folder)) {
+  if (!['videos', 'images', 'audio', 'html'].includes(folder)) {
     throw new Error(`Unsupported media folder: ${folder}`);
   }
 
@@ -459,6 +492,18 @@ function safeLocalSrc(src) {
   return target;
 }
 
+function isRemoteUrl(src) {
+  return typeof src === 'string' && /^https?:\/\//i.test(src);
+}
+
+function isExternalHtmlItem(item) {
+  return item?.type === 'html' && (item.sourceType === 'external_url' || isRemoteUrl(item.src));
+}
+
+function isHtmlItem(item) {
+  return item?.type === 'html';
+}
+
 async function downloadFile(url, targetPath) {
   const tmpPath = `${targetPath}.tmp`;
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -515,6 +560,8 @@ async function syncManifestOnce() {
 
   for (const item of manifestItems) {
     if (!item || typeof item.url !== 'string') continue;
+    if (isHtmlItem(item)) continue;
+    if (isExternalHtmlItem(item)) continue;
     const targetPath = safeLocalSrc(item.src);
     const downloadUrl = toCdnUrl(item.url);
     const cached = mediaState[item.src];
@@ -856,6 +903,7 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
   const nextPlaylist = playlist
     .filter((item) => {
       if (!item?.src) return false;
+      if (isExternalHtmlItem(item)) return true;
       try {
         return fs.existsSync(safeLocalSrc(item.src));
       } catch (error) {
@@ -941,6 +989,8 @@ async function syncManifestFromPush(notification) {
 
   for (const item of manifestItems) {
     if (!item || typeof item.url !== 'string') continue;
+    if (isHtmlItem(item)) continue;
+    if (isExternalHtmlItem(item)) continue;
     const targetPath = safeLocalSrc(item.src);
     const downloadUrl = toCdnUrl(item.url);
     const cached = mediaState[item.src];
@@ -1042,6 +1092,11 @@ async function handlePlayerSocketMessage(raw) {
 }
 
 function startManifestSync() {
+  if (process.env.PLAYER_MANIFEST_SYNC === '0') {
+    console.info('Player manifest sync disabled by PLAYER_MANIFEST_SYNC=0.');
+    return;
+  }
+
   if (!manifestUrl) return;
 
   console.info(`Player manifest sync enabled: ${manifestUrl}`);
