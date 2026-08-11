@@ -9,6 +9,7 @@ class SignagePlayer {
     this.stage = stage;
     this.defaultRenderSize = { width: 1920, height: 1080 };
     this.renderSize = this.defaultRenderSize;
+    this.verticalAlign = 'top';
     this.defaultItem = {
       id: 'fallback',
       type: 'video',
@@ -28,9 +29,11 @@ class SignagePlayer {
     this.pendingElement = null;
     this.advanceTimer = null;
     this.retryTimer = null;
+    this.htmlLoadTimer = null;
     this.refreshTimer = null;
     this.refreshIntervalMs = 1000;
     this.resizeObserver = null;
+    this.htmlViewport = null;
   }
 
   async start() {
@@ -105,6 +108,7 @@ class SignagePlayer {
     if (Number.isFinite(config.refreshIntervalMs) && config.refreshIntervalMs >= 2000) {
       this.refreshIntervalMs = config.refreshIntervalMs;
     }
+    this.verticalAlign = config.verticalAlign === 'center' ? 'center' : 'top';
 
     const playbackMode = config.playbackMode === 'scheduled' ? 'scheduled' : 'default';
     let playlist = (Array.isArray(config.playlist) ? config.playlist : [])
@@ -130,7 +134,12 @@ class SignagePlayer {
           item.width,
           item.height,
           item.muted,
-          item.loop
+          item.loop,
+          item.sourceType,
+          item.navigationPolicy,
+          item.reloadPolicy,
+          item.scrollY,
+          item.htmlScrollY
         ])
       }
     );
@@ -190,7 +199,17 @@ class SignagePlayer {
       fit,
       position,
       playbackMode,
-      muted: item.muted !== false
+      muted: item.muted !== false,
+      sourceType: item.sourceType === 'external_url' ? 'external_url' : item.sourceType === 'upload' ? 'upload' : undefined,
+      navigationPolicy: ['same_origin', 'allowlist', 'allow_all'].includes(item.navigationPolicy)
+        ? item.navigationPolicy
+        : 'same_origin',
+      reloadPolicy: ['on_each_play', 'once_per_playlist', 'interval', 'never'].includes(item.reloadPolicy)
+        ? item.reloadPolicy
+        : 'on_each_play',
+      scrollY: Number.isFinite(Number(item.scrollY ?? item.htmlScrollY))
+        ? Math.max(0, Number(item.scrollY ?? item.htmlScrollY))
+        : undefined
     };
   }
 
@@ -267,20 +286,41 @@ class SignagePlayer {
     this.stage.dataset.renderHeight = String(size.height);
     this.stage.style.setProperty('--playlist-width', `${size.width}px`);
     this.stage.style.setProperty('--playlist-height', `${size.height}px`);
+    this.stage.dataset.verticalAlign = this.verticalAlign;
     this.scaleStageToViewport();
     console.info(`Internal playlist canvas: ${size.width}x${size.height}.`);
   }
 
   listenForViewportChanges() {
-    window.addEventListener('resize', () => this.scaleStageToViewport());
+    window.addEventListener('resize', () => {
+      this.scaleStageToViewport();
+      this.sizeHtmlViewport();
+    });
 
     if (!window.ResizeObserver) {
       this.scaleStageToViewport();
       return;
     }
 
-    this.resizeObserver = new ResizeObserver(() => this.scaleStageToViewport());
+    this.resizeObserver = new ResizeObserver(() => {
+      this.scaleStageToViewport();
+      this.sizeHtmlViewport();
+    });
     this.resizeObserver.observe(this.viewport);
+  }
+
+  sizeHtmlViewport() {
+    if (!this.htmlViewport?.frame?.isConnected || !this.htmlViewport?.webview?.isConnected) return;
+
+    const width = Math.round(this.viewport.clientWidth);
+    const height = Math.round(this.viewport.clientHeight);
+    if (width <= 0 || height <= 0) return;
+
+    const { frame, webview } = this.htmlViewport;
+    frame.style.width = `${width}px`;
+    frame.style.height = `${height}px`;
+    webview.style.width = `${width}px`;
+    webview.style.height = `${height}px`;
   }
 
   scaleStageToViewport() {
@@ -292,6 +332,37 @@ class SignagePlayer {
 
     const scale = Math.min(viewportWidth / width, viewportHeight / height);
     this.stage.style.setProperty('--playlist-scale', String(scale));
+  }
+
+  applyHtmlViewportReset(webview, item) {
+    if (!webview?.executeJavaScript) return;
+    const scrollY = Math.max(0, Number(item.scrollY ?? item.htmlScrollY ?? 0) || 0);
+    webview.executeJavaScript(`
+      (() => {
+        const styleId = 'signlink-html-viewport-reset';
+        let style = document.getElementById(styleId);
+        if (!style) {
+          style = document.createElement('style');
+          style.id = styleId;
+          document.head.appendChild(style);
+        }
+        style.textContent = 'html, body { margin: 0 !important; width: 100% !important; height: 100% !important; }';
+        window.scrollTo(0, ${scrollY});
+
+        // Some HTML experiences measure the viewport during hydration. A webview
+        // can be attached after that initial measurement, so notify it once the
+        // native player surface has its final dimensions.
+        const refreshViewport = () => {
+          window.dispatchEvent(new Event('resize'));
+          window.dispatchEvent(new Event('orientationchange'));
+        };
+        requestAnimationFrame(refreshViewport);
+        setTimeout(refreshViewport, 100);
+        setTimeout(refreshViewport, 350);
+      })();
+    `).catch((error) => {
+      console.warn('Unable to inject HTML viewport reset.', error);
+    });
   }
 
   applyLayout(element, item) {
@@ -322,6 +393,7 @@ class SignagePlayer {
   playCurrent() {
     clearTimeout(this.advanceTimer);
     clearTimeout(this.retryTimer);
+    clearTimeout(this.htmlLoadTimer);
 
     const item = this.playlist[this.index];
     if (!item) {
@@ -331,6 +403,8 @@ class SignagePlayer {
 
     if (item.type === 'image') {
       this.mountImage(item);
+    } else if (item.type === 'html') {
+      this.mountHtml(item);
     } else {
       this.mountVideo(item); // video and audio both use a media element
     }
@@ -342,7 +416,10 @@ class SignagePlayer {
     }
 
     if (!element.isConnected) {
-      this.stage.appendChild(element);
+      const host = element.classList.contains('media-html-frame--viewport')
+        ? this.viewport
+        : this.stage;
+      host.appendChild(element);
     }
 
     element.classList.remove('media-element--pending');
@@ -367,6 +444,129 @@ class SignagePlayer {
     }
 
     this.retryTimer = setTimeout(() => this.next(), 2000);
+  }
+
+  isRemoteUrl(src) {
+    return typeof src === 'string' && /^https?:\/\//i.test(src);
+  }
+
+  isNavigationAllowed(item, targetUrl) {
+    if (item.navigationPolicy === 'allow_all') return true;
+    if (!this.isRemoteUrl(targetUrl)) return false;
+
+    if (Array.isArray(item.navigationAllowlist) && item.navigationAllowlist.length > 0) {
+      return item.navigationAllowlist.some((allowed) => targetUrl.startsWith(allowed));
+    }
+
+    try {
+      return new URL(targetUrl).origin === new URL(item.src).origin;
+    } catch {
+      return false;
+    }
+  }
+
+  createHtmlFrame(item) {
+    const frame = document.createElement('div');
+    frame.className = 'media-element media-html-frame media-html-frame--viewport media-element--pending';
+    frame.style.overflow = 'hidden';
+    frame.style.background = '#000';
+    frame.style.objectFit = '';
+    frame.style.objectPosition = '';
+    return frame;
+  }
+
+  mountHtml(item) {
+    if (this.pendingElement) {
+      this.pendingElement.remove();
+      this.pendingElement = null;
+    }
+
+    const durationMs = Number.isFinite(item.durationMs) && item.durationMs > 0
+      ? item.durationMs
+      : 20000;
+    const loadTimeoutMs = Number.isFinite(item.loadTimeoutMs) && item.loadTimeoutMs > 0
+      ? item.loadTimeoutMs
+      : 15000;
+    const isRemote = item.sourceType === 'external_url' || this.isRemoteUrl(item.src);
+    const frame = this.createHtmlFrame(item);
+    // A normal iframe provides external responsive sites their true layout
+    // viewport. Local HTML packages retain the isolated Electron webview path.
+    const html = document.createElement(isRemote ? 'iframe' : 'webview');
+    html.className = 'media-html-webview';
+    html.style.position = 'absolute';
+    html.style.inset = '0';
+    html.style.width = '100%';
+    html.style.height = '100%';
+    html.style.border = '0';
+    html.style.background = '#000';
+    if (isRemote) {
+      html.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      html.setAttribute('allow', 'autoplay; fullscreen');
+    } else {
+      html.setAttribute('allowpopups', 'false');
+      html.setAttribute('partition', `persist:signlink-html-${item.id || 'default'}`);
+    }
+    this.htmlViewport = { frame, webview: html };
+
+    let ready = false;
+    const complete = () => {
+      if (ready) return;
+      ready = true;
+      clearTimeout(this.htmlLoadTimer);
+      window.removeEventListener('message', readyListener);
+      this.swapToReadyElement(frame);
+      this.advanceTimer = setTimeout(() => this.next(), durationMs);
+    };
+
+    const readyListener = (event) => {
+      if (event?.data?.type === 'PLAYER_READY') complete();
+    };
+
+    if (isRemote) {
+      html.addEventListener('load', complete);
+      html.addEventListener('error', () => this.handleMediaError(item));
+    } else {
+      html.addEventListener('dom-ready', () => {
+        this.applyHtmlViewportReset(html, item);
+        complete();
+      });
+      html.addEventListener('did-finish-load', () => {
+        this.applyHtmlViewportReset(html, item);
+        complete();
+      });
+      html.addEventListener('did-fail-load', (event) => {
+        if (event.errorCode === -3) return;
+        window.removeEventListener('message', readyListener);
+        this.handleMediaError(item);
+      });
+      html.addEventListener('will-navigate', (event) => {
+        if (!this.isNavigationAllowed(item, event.url)) {
+          event.preventDefault();
+        }
+      });
+      html.addEventListener('new-window', (event) => {
+        event.preventDefault();
+      });
+    }
+    window.addEventListener('message', readyListener);
+
+    this.pendingElement = frame;
+    frame.appendChild(html);
+    // A webview must not live inside the playlist canvas transform. Chromium
+    // otherwise reports the untransformed guest viewport to responsive pages.
+    this.viewport.appendChild(frame);
+    this.sizeHtmlViewport();
+    requestAnimationFrame(() => this.sizeHtmlViewport());
+    this.htmlLoadTimer = setTimeout(() => {
+      console.warn(`HTML load timed out: ${item.src}`);
+      window.removeEventListener('message', readyListener);
+      if (isRemote) {
+        complete();
+      } else {
+        this.handleMediaError(item);
+      }
+    }, loadTimeoutMs);
+    html.src = item.src;
   }
 
   mountVideo(item) {
