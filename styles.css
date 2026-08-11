@@ -25,21 +25,30 @@ body {
 #viewport {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
 }
 
 #playlist-stage {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 0;
+  left: 0;
   width: var(--playlist-width, 1920px);
   height: var(--playlist-height, 1080px);
   overflow: hidden;
   background: #000;
   backface-visibility: hidden;
   contain: strict;
+  transform: scale(var(--playlist-scale, 1));
+  transform-origin: top left;
+  will-change: transform;
+}
+
+#playlist-stage[data-vertical-align="center"] {
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%) scale(var(--playlist-scale, 1));
   transform-origin: center center;
-  will-change: transform;
 }
 
 .media-element {
@@ -58,6 +67,32 @@ video.media-element {
   backface-visibility: hidden;
   transform: translateZ(0);
   will-change: transform;
+}
+
+webview.media-element,
+iframe.media-element {
+  background: #000;
+  border: 0;
+  object-fit: fill;
+  object-position: top left;
+}
+
+.media-html-frame {
+  overflow: hidden;
+  background: #000;
+}
+
+.media-html-frame--viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+.media-html-webview {
+  display: block;
+  border: 0;
+  background: #000;
 }
 
 .media-element--pending {
