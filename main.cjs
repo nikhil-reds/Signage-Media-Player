@@ -92,7 +92,7 @@ const playerWsUrl =
   process.env.PLAYER_WS_URL ||
   startupConfig.playerWsUrl ||
   startupConfig.webSocketUrl ||
-  'ws://localhost:3001/ws/player';
+  'ws://localhost:3031/ws/player';
 const manifestUrl =
   process.env.PLAYER_MANIFEST_URL ||
   startupConfig.manifestUrl ||
@@ -283,7 +283,7 @@ function writeManifestCache(manifest) {
 }
 
 function safeMediaPath(folder, fileName) {
-  if (!['videos', 'images', 'audio'].includes(folder)) {
+  if (!['videos', 'images', 'audio', 'html'].includes(folder)) {
     throw new Error(`Unsupported media folder: ${folder}`);
   }
 
@@ -439,6 +439,18 @@ function safeLocalSrc(src) {
   return target;
 }
 
+function isRemoteUrl(src) {
+  return typeof src === 'string' && /^https?:\/\//i.test(src);
+}
+
+function isExternalHtmlItem(item) {
+  return item?.type === 'html' && (item.sourceType === 'external_url' || isRemoteUrl(item.src));
+}
+
+function isHtmlItem(item) {
+  return item?.type === 'html';
+}
+
 async function downloadFile(url, targetPath) {
   const tmpPath = `${targetPath}.tmp`;
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -495,6 +507,8 @@ async function syncManifestOnce() {
 
   for (const item of manifestItems) {
     if (!item || typeof item.url !== 'string') continue;
+    if (isHtmlItem(item)) continue;
+    if (isExternalHtmlItem(item)) continue;
     const targetPath = safeLocalSrc(item.src);
     const downloadUrl = toCdnUrl(item.url);
     const cached = mediaState[item.src];
@@ -751,6 +765,7 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
   const nextPlaylist = playlist
     .filter((item) => {
       if (!item?.src) return false;
+      if (isExternalHtmlItem(item)) return true;
       try {
         return fs.existsSync(safeLocalSrc(item.src));
       } catch (error) {
@@ -836,6 +851,8 @@ async function syncManifestFromPush(notification) {
 
   for (const item of manifestItems) {
     if (!item || typeof item.url !== 'string') continue;
+    if (isHtmlItem(item)) continue;
+    if (isExternalHtmlItem(item)) continue;
     const targetPath = safeLocalSrc(item.src);
     const downloadUrl = toCdnUrl(item.url);
     const cached = mediaState[item.src];
