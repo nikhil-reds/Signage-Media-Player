@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "deviceId": "SL-PLAYER-001",
-  "serverNow": "2026-07-29T12:00:47.263Z",
+  "serverNow": "2026-08-24T11:00:05.430Z",
   "playlist": [],
   "playlists": [
     {
@@ -39,18 +39,18 @@
       ]
     },
     {
-      "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+      "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
       "items": [
         {
-          "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+          "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
           "type": "video",
-          "src": "media/videos/playlist-e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
-          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "src": "media/videos/playlist-69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
           "loop": true,
           "muted": false,
           "fit": "scale-down",
           "position": "center",
-          "width": 2880,
+          "width": 1920,
           "height": 1080
         }
       ]
@@ -67,7 +67,24 @@
           "muted": false,
           "fit": "scale-down",
           "position": "center",
-          "width": 2880,
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+      "items": [
+        {
+          "id": "e04e92da-016d-4c01-92b9-07d51984fd0f",
+          "type": "video",
+          "src": "media/videos/playlist-e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/e04e92da-016d-4c01-92b9-07d51984fd0f.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
           "height": 1080
         }
       ]
@@ -152,7 +169,60 @@
           "muted": false,
           "fit": "scale-down",
           "position": "center",
-          "width": 2880,
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "items": [
+        {
+          "id": "8ccc855d-4394-4f74-a04d-ad25c2fdd6bd",
+          "type": "html",
+          "src": "https://clock-timeline-rubenius.vercel.app/",
+          "url": "https://clock-timeline-rubenius.vercel.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+      "items": [
+        {
+          "id": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+          "type": "video",
+          "src": "media/videos/playlist-926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/926d4a94-b83d-4e71-bfb4-b4bc49f0cd47.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "items": [
+        {
+          "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+          "type": "video",
+          "src": "media/videos/playlist-69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
           "height": 1080
         }
       ]
@@ -175,6 +245,78 @@
       ]
     },
     {
+      "id": "952c6547-7718-4f5f-ba45-5ecd1d2658ca",
+      "items": [
+        {
+          "id": "952c6547-7718-4f5f-ba45-5ecd1d2658ca",
+          "type": "video",
+          "src": "media/videos/playlist-952c6547-7718-4f5f-ba45-5ecd1d2658ca.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/952c6547-7718-4f5f-ba45-5ecd1d2658ca.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "items": [
+        {
+          "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+          "type": "video",
+          "src": "media/videos/playlist-69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "19d22aad-cd85-4438-8203-e83476b0e8bc",
+      "items": [
+        {
+          "id": "89648555-c724-44f8-a1e4-92799adb2a8f",
+          "type": "html",
+          "src": "https://www.rubenius.in/",
+          "url": "https://www.rubenius.in/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "items": [
+        {
+          "id": "8ccc855d-4394-4f74-a04d-ad25c2fdd6bd",
+          "type": "html",
+          "src": "https://clock-timeline-rubenius.vercel.app/",
+          "url": "https://clock-timeline-rubenius.vercel.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
       "id": "91536a28-9276-4779-b4c3-cf0b9188aea8",
       "items": [
         {
@@ -182,6 +324,190 @@
           "type": "video",
           "src": "media/videos/playlist-91536a28-9276-4779-b4c3-cf0b9188aea8.mp4",
           "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/91536a28-9276-4779-b4c3-cf0b9188aea8.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "items": [
+        {
+          "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+          "type": "video",
+          "src": "media/videos/playlist-69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "items": [
+        {
+          "id": "8ccc855d-4394-4f74-a04d-ad25c2fdd6bd",
+          "type": "html",
+          "src": "https://clock-timeline-rubenius.vercel.app/",
+          "url": "https://clock-timeline-rubenius.vercel.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "items": [
+        {
+          "id": "8ccc855d-4394-4f74-a04d-ad25c2fdd6bd",
+          "type": "html",
+          "src": "https://clock-timeline-rubenius.vercel.app/",
+          "url": "https://clock-timeline-rubenius.vercel.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "items": [
+        {
+          "id": "8ccc855d-4394-4f74-a04d-ad25c2fdd6bd",
+          "type": "html",
+          "src": "https://clock-timeline-rubenius.vercel.app/",
+          "url": "https://clock-timeline-rubenius.vercel.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "items": [
+        {
+          "id": "8ccc855d-4394-4f74-a04d-ad25c2fdd6bd",
+          "type": "html",
+          "src": "https://clock-timeline-rubenius.vercel.app/",
+          "url": "https://clock-timeline-rubenius.vercel.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "6e58e753-8f93-414d-ae9d-71110d2a77d3",
+      "items": [
+        {
+          "id": "02b0c279-73a3-4787-909a-208c23a02e2c",
+          "type": "html",
+          "src": "https://fxcmyntra.framer.website/",
+          "url": "https://fxcmyntra.framer.website/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "items": [
+        {
+          "id": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+          "type": "video",
+          "src": "media/videos/playlist-69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
+          "loop": true,
+          "muted": false,
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080
+        }
+      ]
+    },
+    {
+      "id": "6e58e753-8f93-414d-ae9d-71110d2a77d3",
+      "items": [
+        {
+          "id": "02b0c279-73a3-4787-909a-208c23a02e2c",
+          "type": "html",
+          "src": "https://fxcmyntra.framer.website/",
+          "url": "https://fxcmyntra.framer.website/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "bf7e970b-547d-4e7e-950d-af83afd0623e",
+      "items": [
+        {
+          "id": "19a6d0bd-6b5c-42e6-9bf5-89cf511784dc",
+          "type": "html",
+          "src": "https://tr-rdx.netlify.app/",
+          "url": "https://tr-rdx.netlify.app/",
+          "sourceType": "external_url",
+          "fit": "scale-down",
+          "position": "center",
+          "width": 1920,
+          "height": 1080,
+          "durationMs": 20000,
+          "navigationPolicy": "same_origin",
+          "reloadPolicy": "on_each_play"
+        }
+      ]
+    },
+    {
+      "id": "b3b11326-e490-45ac-80d3-5c13c955c2bd",
+      "items": [
+        {
+          "id": "b3b11326-e490-45ac-80d3-5c13c955c2bd",
+          "type": "video",
+          "src": "media/videos/playlist-b3b11326-e490-45ac-80d3-5c13c955c2bd.mp4",
+          "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/b3b11326-e490-45ac-80d3-5c13c955c2bd.mp4",
           "loop": true,
           "muted": false,
           "fit": "scale-down",
@@ -217,6 +543,23 @@
       "priority": 100,
       "startAt": "2026-07-24T12:30:00.000Z",
       "endAt": "2026-07-24T12:35:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "6ee76031-5a55-4850-a6de-7f673b73f8cf",
+      "name": "test priority",
+      "playlistId": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "priority": 100,
+      "startAt": "2026-07-30T11:36:00.000Z",
+      "endAt": "2026-07-30T12:00:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -347,12 +690,131 @@
       ]
     },
     {
+      "id": "cfd62d00-0d47-419b-a4fe-2a15d95c9fae",
+      "name": "test",
+      "playlistId": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "priority": 90,
+      "startAt": "2026-08-10T12:30:00.000Z",
+      "endAt": "2026-08-10T12:45:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "bd65833d-7220-4cd9-a2ec-774533f54e9d",
+      "name": "test",
+      "playlistId": "926d4a94-b83d-4e71-bfb4-b4bc49f0cd47",
+      "priority": 76,
+      "startAt": "2026-07-29T12:00:00.000Z",
+      "endAt": "2026-07-29T12:05:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "4df0f9c7-1668-44cb-baa3-af16edfec53b",
+      "name": "test the reds",
+      "playlistId": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "priority": 76,
+      "startAt": "2026-08-17T11:15:00.000Z",
+      "endAt": "2026-08-17T11:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
       "id": "b500dd07-5c77-496b-9120-70829b0d8d97",
       "name": "test the sheduled ",
       "playlistId": "e38117d0-afad-409b-8e11-b057c2c31589",
       "priority": 50,
       "startAt": "2026-07-24T05:35:00.000Z",
       "endAt": "2026-07-24T05:40:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "59353217-a1fb-4602-ba64-1fcdd10c060e",
+      "name": "test",
+      "playlistId": "952c6547-7718-4f5f-ba45-5ecd1d2658ca",
+      "priority": 50,
+      "startAt": "2026-07-30T09:46:00.000Z",
+      "endAt": "2026-07-30T09:50:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "0e50a1cb-fd61-4481-93d5-42591057089e",
+      "name": "test",
+      "playlistId": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "priority": 46,
+      "startAt": "2026-08-17T11:09:00.000Z",
+      "endAt": "2026-08-17T08:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "9d27eea9-f9ff-44ca-9342-567832283c9d",
+      "name": "Rubenius",
+      "playlistId": "19d22aad-cd85-4438-8203-e83476b0e8bc",
+      "priority": 45,
+      "startAt": "2026-08-17T10:25:00.000Z",
+      "endAt": "2026-08-17T10:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "b1b63d37-1df3-45fc-8458-0762d2427c48",
+      "name": "Clock timer",
+      "playlistId": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "priority": 40,
+      "startAt": "2026-08-10T09:01:00.000Z",
+      "endAt": "2026-08-10T09:05:00.000Z",
       "daysOfWeek": [
         1,
         2,
@@ -379,7 +841,177 @@
         6,
         7
       ]
+    },
+    {
+      "id": "405ce9ce-4a39-4986-8cc7-edf7a76e3c0b",
+      "name": "testalpha",
+      "playlistId": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "priority": 30,
+      "startAt": "2026-08-10T08:57:00.000Z",
+      "endAt": "2026-08-10T09:00:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "a8df0db9-3287-4af7-95d7-9ec63c382177",
+      "name": "test",
+      "playlistId": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "priority": 30,
+      "startAt": "2026-08-10T09:08:00.000Z",
+      "endAt": "2026-08-10T09:20:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "3e44d42b-9470-411c-b911-f87c71d94056",
+      "name": "test",
+      "playlistId": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "priority": 30,
+      "startAt": "2026-08-10T09:27:00.000Z",
+      "endAt": "2026-08-10T09:40:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "4ad614f0-79e6-42a0-8911-3c632ca21d56",
+      "name": "test",
+      "playlistId": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "priority": 30,
+      "startAt": "2026-08-10T09:45:00.000Z",
+      "endAt": "2026-08-10T10:00:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "a2b53fbb-c6b4-40b4-81f9-a0aea301d367",
+      "name": "test",
+      "playlistId": "48999358-0004-4a13-8dcb-6da38f8ed0a2",
+      "priority": 30,
+      "startAt": "2026-08-10T10:06:00.000Z",
+      "endAt": "2026-08-10T10:15:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "99b33318-165c-48ac-9026-d68178e65bb3",
+      "name": "ficart",
+      "playlistId": "6e58e753-8f93-414d-ae9d-71110d2a77d3",
+      "priority": 30,
+      "startAt": "2026-08-10T11:58:00.000Z",
+      "endAt": "2026-08-10T12:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "7e635acf-b527-4e5b-bbbd-986d94a8ddd7",
+      "name": "Rajesh Kumar",
+      "playlistId": "69d8f9ac-e750-48a4-99f4-53e11deaa08e",
+      "priority": 30,
+      "startAt": "2026-08-17T10:00:00.000Z",
+      "endAt": "2026-08-17T10:45:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "d209d10e-f98b-4db7-9c8a-fb634e538b56",
+      "name": "test again",
+      "playlistId": "6e58e753-8f93-414d-ae9d-71110d2a77d3",
+      "priority": 30,
+      "startAt": "2026-08-17T11:09:00.000Z",
+      "endAt": "2026-08-17T11:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "5b8fac04-1e9c-4500-ad14-6bee19ed31e8",
+      "name": "test",
+      "playlistId": "bf7e970b-547d-4e7e-950d-af83afd0623e",
+      "priority": 30,
+      "startAt": "2026-08-18T12:10:00.000Z",
+      "endAt": "2026-08-18T12:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "id": "1cfae9de-6445-406e-b884-8905471fa982",
+      "name": "T Fastening",
+      "playlistId": "b3b11326-e490-45ac-80d3-5c13c955c2bd",
+      "priority": 30,
+      "startAt": "2026-08-19T06:14:00.000Z",
+      "endAt": "2026-08-19T11:30:00.000Z",
+      "daysOfWeek": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
     }
   ],
-  "revision": "2026-07-29T12:00:47.263Z"
+  "revision": "2026-08-24T11:00:05.431Z"
 }

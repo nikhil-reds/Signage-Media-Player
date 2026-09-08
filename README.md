@@ -96,6 +96,19 @@ writable user-data folder.
 
 ## Configuration
 
+### Re-registering a player
+
+Press `Ctrl+Shift+P` while the desktop player is focused to open **Player
+Registration**. The card shows the saved CMS address, device identity,
+registration ID, install ID, and last registration time. Enter a fresh pairing
+code from the CMS and select **Pair screen** to move the player to the selected
+screen. The player keeps its local playback files while the registration is
+updated.
+
+Use **Reset local registration** only when the stored registration must be
+discarded. It clears the runtime provisioning and CMS identity but preserves the
+install ID and cached media, so the same physical player can be paired again.
+
 The bundled `config.json` can enable manifest sync directly:
 
 ```json

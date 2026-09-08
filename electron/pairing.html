@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pair this screen</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0d131e;
+        color: #f2f5f8;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      .card { width: min(520px, 90vw); }
+      h1 { margin: 0 0 8px; font-size: 22px; }
+      p.lead { margin: 0 0 24px; color: #9aa7b7; font-size: 14px; line-height: 1.5; }
+      label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #9aa7b7; margin-bottom: 6px; }
+      input {
+        width: 100%; padding: 12px 14px; margin-bottom: 16px;
+        background: #171f2c; border: 1px solid #283243; border-radius: 8px;
+        color: #f2f5f8; font-size: 15px; font-family: inherit;
+      }
+      input#code { font-family: ui-monospace, monospace; font-size: 24px; letter-spacing: 0.25em; text-align: center; }
+      input:focus { outline: none; border-color: #6f96ff; }
+      button {
+        width: 100%; padding: 12px; border: 0; border-radius: 8px;
+        background: #2859d9; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+      }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      button.secondary { margin-top: 10px; background: #303d52; }
+      button.danger { margin-top: 10px; background: transparent; border: 1px solid #944f56; color: #ffb5bc; }
+      .status { margin-top: 16px; font-size: 13px; min-height: 20px; }
+      .status.error { color: #ff8080; }
+      .status.ok { color: #7ee2a8; }
+      .details { margin: 0 0 22px; padding: 14px; background: #171f2c; border: 1px solid #283243; border-radius: 8px; }
+      .details h2 { margin: 0 0 10px; font-size: 13px; color: #d8e1ed; }
+      .details dl { margin: 0; display: grid; grid-template-columns: 130px 1fr; gap: 7px 10px; font-size: 12px; }
+      .details dt { color: #9aa7b7; }
+      .details dd { margin: 0; overflow-wrap: anywhere; color: #f2f5f8; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Pair this screen</h1>
+      <p class="lead">Use a new pairing code from the CMS to link or move this player to the correct screen.</p>
+
+      <section class="details" aria-live="polite">
+        <h2>Current player details</h2>
+        <dl>
+          <dt>Device ID</dt><dd id="deviceId">Not registered</dd>
+          <dt>Screen name</dt><dd id="deviceName">—</dd>
+          <dt>Registration ID</dt><dd id="registrationId">—</dd>
+          <dt>Install ID</dt><dd id="installId">—</dd>
+          <dt>Last registered</dt><dd id="registeredAt">—</dd>
+        </dl>
+      </section>
+
+      <form id="form">
+        <label for="server">CMS address</label>
+        <input id="server" type="url" placeholder="https://cms.example.com" required />
+
+        <label for="code">Pairing code</label>
+        <input id="code" type="text" placeholder="XXXX-XXXX" maxlength="9" autocomplete="off" required />
+
+        <button id="submit" type="submit">Pair screen</button>
+      </form>
+
+      <button id="reset" class="danger" type="button">Reset local registration</button>
+
+      <div class="status" id="status"></div>
+    </main>
+
+    <script>
+      const form = document.getElementById('form');
+      const serverInput = document.getElementById('server');
+      const codeInput = document.getElementById('code');
+      const submitButton = document.getElementById('submit');
+      const resetButton = document.getElementById('reset');
+      const status = document.getElementById('status');
+
+      function show(value) { return value || '—'; }
+      function renderDetails(details) {
+        serverInput.value = details.apiBaseUrl || serverInput.value;
+        document.getElementById('deviceId').textContent = show(details.deviceId);
+        document.getElementById('deviceName').textContent = show(details.deviceName);
+        document.getElementById('registrationId').textContent = show(details.registrationId);
+        document.getElementById('installId').textContent = show(details.installId);
+        document.getElementById('registeredAt').textContent = show(details.registeredAt);
+      }
+
+      window.pairing.getDefaults().then((defaults) => {
+        if (defaults) renderDetails(defaults);
+        (serverInput.value ? codeInput : serverInput).focus();
+      });
+
+      codeInput.addEventListener('input', () => {
+        const raw = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+        codeInput.value = raw.length > 4 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        submitButton.disabled = true;
+        status.className = 'status';
+        status.textContent = 'Pairing…';
+
+        const result = await window.pairing.submit(serverInput.value.trim(), codeInput.value);
+
+        if (result && result.ok) {
+          status.className = 'status ok';
+          status.textContent = 'Registration updated successfully.';
+          if (result.details) renderDetails(result.details);
+          codeInput.value = '';
+          submitButton.disabled = false;
+          return;
+        }
+
+        status.className = 'status error';
+        status.textContent = (result && result.message) || 'Pairing failed.';
+        submitButton.disabled = false;
+      });
+
+      resetButton.addEventListener('click', async () => {
+        if (!confirm('Reset this player’s saved registration? Playback is preserved, but it will no longer receive CMS updates until paired again.')) return;
+        resetButton.disabled = true;
+        try {
+          renderDetails(await window.pairing.reset());
+          status.className = 'status ok';
+          status.textContent = 'Local registration cleared. Enter a new pairing code to register this player.';
+        } catch (error) {
+          status.className = 'status error';
+          status.textContent = error.message || 'Could not reset registration.';
+        } finally {
+          resetButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

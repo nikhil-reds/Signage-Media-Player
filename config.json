@@ -1,60 +1,30 @@
 {
-  "name": "SignLink Digital Signage Player",
+  "name": "REDS Digital Signage Player",
   "version": "1.0.0",
-  "deviceId": "SL-PLAYER-001",
-  "serverUrl": "https://api.signlink.io/v1",
-  "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
+  "apiBaseUrl": "",
   "playerWsUrl": "ws://localhost:3031/ws/player",
-  "deviceToken": "change-me",
   "cdnUrl": "https://d1zue4w6hf1jx0.cloudfront.net",
-  "syncIntervalMs": 5000,
+  "syncIntervalMs": 30000,
+  "heartbeatIntervalMs": 60000,
   "refreshIntervalMs": 15000,
-  "windowMode": "windowed",
+  "windowMode": "kiosk",
   "volume": 80,
   "orientation": "landscape",
+  "playbackMode": "default",
   "playlist": [
     {
-      "id": "02b0c279-73a3-4787-909a-208c23a02e2c",
-      "type": "html",
-      "src": "https://fxcmyntra.framer.website/",
-      "sourceType": "external_url",
-      "fit": "scale-down",
-      "position": "center",
-      "width": 1920,
-      "height": 1080,
-      "durationMs": 20000,
-      "navigationPolicy": "same_origin",
-      "reloadPolicy": "on_each_play"
-    },
-    {
-      "id": "613cabb6-cd43-416c-a460-90946f6afb1f",
-      "type": "html",
-      "sourceType": "external_url",
-      "src": "https://www.google.com/",
+      "id": "fallback",
+      "type": "video",
+      "src": "media/videos/default-video.mp4",
+      "default": true,
+      "loop": true,
       "muted": true,
-      "fit": "contain",
-      "position": "center",
-      "durationMs": 20000,
-      "width": 1920,
-      "height": 1080,
-      "navigationPolicy": "same_origin",
-      "reloadPolicy": "on_each_play"
+      "fit": "scale-down",
+      "position": "center"
     }
   ],
-  "playbackMode": "scheduled",
-  "activeScheduleId": "99b33318-165c-48ac-9026-d68178e65bb3",
-  "activeScheduleName": "ficart",
-  "activeScheduleStartAt": "2026-08-10T11:58:00.000Z",
-  "activeScheduleEndAt": "2026-08-10T12:30:00.000Z",
-  "appliedAt": "2026-08-10T11:57:59.457Z",
-  "playlistResolution": {
-    "width": 1920,
-    "height": 1080
-  },
-  "renderResolution": {
-    "width": 1920,
-    "height": 1080
-  },
-  "playlistWidth": 1920,
-  "playlistHeight": 1080
+  "activeScheduleId": null,
+  "activeScheduleName": null,
+  "activeScheduleStartAt": null,
+  "activeScheduleEndAt": null
 }

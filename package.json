@@ -2,6 +2,7 @@
   "name": "signlink-digital-signage-player",
   "version": "1.0.0",
   "description": "Unattended cross-platform digital signage player",
+  "desktopName": "reds-player.desktop",
   "main": "electron/main.cjs",
   "author": "SignLink",
   "license": "UNLICENSED",
@@ -11,8 +12,10 @@
     "validate:brightsign": "node scripts/validate-brightsign.mjs",
     "build:windows": "electron-builder --win nsis --x64 --config.directories.output=output/windows",
     "build:brightsign": "node scripts/package-brightsign.mjs",
-    "build:linux": "electron-builder --linux AppImage --x64 --arm64 --config.directories.output=output/linux",
-    "build:mac": "electron-builder --mac dmg --universal --config.directories.output=output/macos"
+    "build:linux": "node scripts/preflight-linux-build.mjs && electron-builder --linux AppImage --x64 --arm64 --config.directories.output=output/linux",
+    "build:mac": "electron-builder --mac dmg --universal --config.directories.output=output/macos",
+    "publish:player-build": "node scripts/publish-player-build.mjs",
+    "build:linux:docker": "node scripts/build-linux-docker.mjs"
   },
   "build": {
     "appId": "io.signlink.player",
@@ -48,10 +51,14 @@
     "linux": {
       "target": "AppImage",
       "category": "AudioVideo",
-      "artifactName": "reds-player-${arch}.${ext}"
+      "artifactName": "reds-player-${arch}.${ext}",
+      "syncDesktopName": true,
+      "synopsis": "REDS digital signage player"
     }
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1081.0",
+    "@aws-sdk/lib-storage": "^3.1081.0",
     "archiver": "^8.0.0",
     "brighterscript": "^0.73.0",
     "electron": "^43.1.0",

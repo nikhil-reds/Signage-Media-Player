@@ -1,11 +1,21 @@
-const { app, BrowserWindow, powerSaveBlocker, protocol, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, powerSaveBlocker, protocol, screen } = require('electron');
 const WebSocket = require('ws');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { protocolFileResponse } = require('./file-response.cjs');
+const {
+  collectMachineInfo,
+  discoverProvisioning,
+  ensureInstallId,
+  exchangePairingCode,
+  persistProvisioning,
+  registerInstall,
+  sendHeartbeat
+} = require('./provisioning.cjs');
 
 let mainWindow;
+let pairingWindow;
 let powerSaveBlockerId;
 let lanServer;
 let playerSocket;
@@ -22,6 +32,9 @@ const syncStatePath = path.join(runtimeRoot, 'sync-state.json');
 const manifestCachePath = path.join(runtimeRoot, 'manifest-cache.json');
 
 let manifestSyncTimer;
+let heartbeatTimer;
+let playerProvisioning;
+let playerInstallId;
 let scheduleEvalTimer;
 let scheduleBoundaryTimer;
 let scheduleBoundaryAtMs = 0;
@@ -79,21 +92,25 @@ function readStartupConfig() {
 
 ensureRuntimeFiles();
 const startupConfig = readStartupConfig();
-const playerDeviceId = process.env.PLAYER_DEVICE_ID || startupConfig.deviceId || 'SL-PLAYER-001';
-const playerTenantId = process.env.PLAYER_TENANT_ID || startupConfig.tenantId || '';
+// Identity is assigned by the CMS during registration, so these stay mutable and
+// are refreshed from config once registration completes. There is deliberately
+// no shared default: an unregistered player must stay idle rather than claim a
+// device id that belongs to some other screen.
+let playerDeviceId = process.env.PLAYER_DEVICE_ID || startupConfig.deviceId || '';
+let playerTenantId = process.env.PLAYER_TENANT_ID || startupConfig.tenantId || '';
 const playerSiteId = process.env.PLAYER_SITE_ID || startupConfig.siteId || '';
 const playerGroupId = process.env.PLAYER_GROUP_ID || startupConfig.groupId || '';
-const playerDeviceToken =
+let playerDeviceToken =
   process.env.PLAYER_DEVICE_TOKEN ||
   process.env.PLAYER_WS_TOKEN ||
   startupConfig.deviceToken ||
-  'change-me';
+  '';
 const playerWsUrl =
   process.env.PLAYER_WS_URL ||
   startupConfig.playerWsUrl ||
   startupConfig.webSocketUrl ||
   'ws://localhost:3031/ws/player';
-const manifestUrl =
+let manifestUrl =
   process.env.PLAYER_MANIFEST_URL ||
   startupConfig.manifestUrl ||
   startupConfig.playerManifestUrl ||
@@ -200,6 +217,10 @@ function createWindow() {
   mainWindow.webContents.on('before-input-event', (event, input) => {
     const zoomKey = input.key === '+' || input.key === '=' || input.key === '-' || input.key === '0';
     if ((input.control || input.meta) && zoomKey) event.preventDefault();
+    if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      void openRegistrationWindow();
+    }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
@@ -1022,6 +1043,10 @@ function sendPlayerSocketMessage(message) {
 
 function startPlayerWebSocket() {
   if (!playerWsUrl) return;
+  if (!playerDeviceId || !playerDeviceToken) {
+    console.warn('Player WebSocket not started: no device identity assigned yet.');
+    return;
+  }
 
   const url = new URL(playerWsUrl);
   url.searchParams.set('deviceId', playerDeviceId);
@@ -1091,6 +1116,259 @@ async function handlePlayerSocketMessage(raw) {
   }
 }
 
+function manifestUrlForDevice(deviceId) {
+  if (!cdnBaseUrl || !deviceId) return '';
+  return `${cdnBaseUrl.replace(/\/$/, '')}/manifests/${deviceId}.json`;
+}
+
+/**
+ * Recovery UI shown when no provisioning file was found. Resolves with the
+ * provisioning payload once the agent types a valid pairing code.
+ */
+function registrationDetails() {
+  const config = readConfig();
+  return {
+    apiBaseUrl: process.env.PLAYER_API_BASE_URL || playerProvisioning?.apiBaseUrl || startupConfig.apiBaseUrl || '',
+    deviceId: playerDeviceId || config.deviceId || '',
+    deviceName: config.deviceName || '',
+    registrationId: playerProvisioning?.registrationId || config.registrationId || '',
+    installId: playerInstallId || config.installId || '',
+    registeredAt: config.registeredAt || ''
+  };
+}
+
+function stopRegistrationServices() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = undefined;
+  }
+  if (manifestSyncTimer) {
+    clearInterval(manifestSyncTimer);
+    manifestSyncTimer = undefined;
+  }
+  if (scheduleEvalTimer) {
+    clearInterval(scheduleEvalTimer);
+    scheduleEvalTimer = undefined;
+  }
+  if (scheduleBoundaryTimer) {
+    clearTimeout(scheduleBoundaryTimer);
+    scheduleBoundaryTimer = undefined;
+    scheduleBoundaryAtMs = 0;
+  }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = undefined;
+  }
+  if (playerSocket) {
+    playerSocket.close();
+    playerSocket = undefined;
+  }
+}
+
+async function refreshRegistration() {
+  stopRegistrationServices();
+  const registered = await registerWithCms({ strict: true });
+  if (!registered) throw new Error('CMS registration did not return a device identity.');
+  startHeartbeat();
+  startManifestSync();
+  startPlayerWebSocket();
+  return registrationDetails();
+}
+
+function clearLocalRegistration() {
+  stopRegistrationServices();
+  const provisioningPath = path.join(runtimeRoot, 'provisioning.json');
+  try {
+    fs.unlinkSync(provisioningPath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+
+  const config = readConfig();
+  for (const key of ['deviceId', 'deviceToken', 'tenantId', 'manifestUrl', 'registrationId', 'registeredAt']) {
+    delete config[key];
+  }
+  writeConfig(config);
+  playerProvisioning = undefined;
+  playerDeviceId = '';
+  playerDeviceToken = '';
+  playerTenantId = '';
+  manifestUrl = '';
+  console.info('Local player registration was cleared by the operator.');
+}
+
+async function openRegistrationWindow() {
+  if (pairingWindow && !pairingWindow.isDestroyed()) {
+    pairingWindow.focus();
+    return;
+  }
+  await showPairingWindow({ allowExistingRegistration: true });
+}
+
+function showPairingWindow({ allowExistingRegistration = false } = {}) {
+  return new Promise((resolve) => {
+    pairingWindow = new BrowserWindow({
+      width: 720,
+      height: 620,
+      fullscreen: playerKioskMode,
+      title: 'Pair this screen',
+      backgroundColor: '#0d131e',
+      webPreferences: {
+        preload: path.join(__dirname, 'pairing-preload.cjs'),
+        contextIsolation: true,
+        nodeIntegration: false
+      }
+    });
+
+    let settled = false;
+
+    ipcMain.handle('pairing:defaults', () => registrationDetails());
+
+    ipcMain.handle('pairing:submit', async (_event, { apiBaseUrl, code }) => {
+      try {
+        const provisioning = await exchangePairingCode(apiBaseUrl, code);
+        persistProvisioning(runtimeRoot, provisioning);
+        playerProvisioning = provisioning;
+        if (allowExistingRegistration) {
+          // Do not fall back to the old screen identity if the new registration
+          // request fails. The operator needs to see that failure and retry.
+          playerDeviceId = '';
+          playerDeviceToken = '';
+          const details = await refreshRegistration();
+          return { ok: true, details };
+        }
+        settled = true;
+        resolve(provisioning);
+        setTimeout(() => {
+          if (!pairingWindow.isDestroyed()) pairingWindow.close();
+        }, 800);
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: error.message };
+      }
+    });
+
+    ipcMain.handle('pairing:reset', () => {
+      clearLocalRegistration();
+      return registrationDetails();
+    });
+
+    pairingWindow.on('closed', () => {
+      ipcMain.removeHandler('pairing:defaults');
+      ipcMain.removeHandler('pairing:submit');
+      ipcMain.removeHandler('pairing:reset');
+      pairingWindow = undefined;
+      if (!settled) resolve(null);
+    });
+
+    pairingWindow.loadFile(path.join(__dirname, 'pairing.html'));
+  });
+}
+
+/**
+ * Registers with the CMS on every launch. The install endpoint is idempotent per
+ * installId, so repeat calls simply refresh the machine info the CMS holds.
+ * Returns false when the player could not be linked to a screen.
+ */
+async function registerWithCms({ strict = false } = {}) {
+  let discovered = discoverProvisioning({ app, appRoot, runtimeRoot });
+
+  if (!discovered) {
+    console.warn('No provisioning.json found; asking the operator to pair this screen.');
+    const paired = await showPairingWindow();
+    if (!paired) {
+      console.warn('Pairing was cancelled. This player is not linked to a screen.');
+      return false;
+    }
+    discovered = { provisioning: paired, sourcePath: path.join(runtimeRoot, 'provisioning.json') };
+  }
+
+  playerProvisioning = discovered.provisioning;
+  playerInstallId = ensureInstallId(runtimeRoot);
+
+  // Keep a copy in the runtime dir so later launches work after the agent
+  // deletes the unzipped download folder.
+  if (discovered.sourcePath !== path.join(runtimeRoot, 'provisioning.json')) {
+    try {
+      persistProvisioning(runtimeRoot, playerProvisioning);
+    } catch (error) {
+      console.warn('Could not persist provisioning file:', error.message);
+    }
+  }
+
+  const machineInfo = collectMachineInfo({ app, screen });
+
+  try {
+    const identity = await registerInstall({
+      provisioning: playerProvisioning,
+      installId: playerInstallId,
+      machineInfo
+    });
+
+    if (!identity?.deviceId || !identity?.deviceToken) {
+      const responseShape = identity ? Object.keys(identity).join(', ') : 'empty response';
+      const error = new Error(`CMS install response did not include deviceId/deviceToken (${responseShape}).`);
+      console.error(error.message);
+      if (strict) throw error;
+      return false;
+    }
+
+    playerDeviceId = identity.deviceId;
+    playerDeviceToken = identity.deviceToken;
+    playerTenantId = playerProvisioning.tenantId || playerTenantId;
+    manifestUrl = process.env.PLAYER_MANIFEST_URL || manifestUrlForDevice(identity.deviceId) || manifestUrl;
+
+    const config = readConfig();
+    writeConfig({
+      ...config,
+      deviceId: playerDeviceId,
+      deviceName: identity.deviceName || config.deviceName || '',
+      deviceToken: playerDeviceToken,
+      tenantId: playerTenantId,
+      manifestUrl,
+      registrationId: playerProvisioning.registrationId,
+      installId: playerInstallId,
+      registeredAt: new Date().toISOString()
+    });
+
+    console.info(
+      `Registered with CMS as device ${playerDeviceId}` +
+        (identity.deviceName ? ` (${identity.deviceName})` : '')
+    );
+    return true;
+  } catch (error) {
+    console.error('CMS registration failed:', error.message);
+    if (strict) throw error;
+    // A previously registered player keeps running on its stored identity.
+    return Boolean(playerDeviceId && playerDeviceToken);
+  }
+}
+
+function startHeartbeat() {
+  if (!playerProvisioning || !playerDeviceId || !playerDeviceToken) return;
+
+  const intervalMs = Number.parseInt(
+    process.env.PLAYER_HEARTBEAT_INTERVAL_MS || String(startupConfig.heartbeatIntervalMs || '60000'),
+    10
+  );
+
+  const beat = async () => {
+    try {
+      await sendHeartbeat({
+        provisioning: playerProvisioning,
+        deviceId: playerDeviceId,
+        deviceToken: playerDeviceToken,
+        machineInfo: collectMachineInfo({ app, screen })
+      });
+    } catch (error) {
+      console.warn('Heartbeat failed:', error.message);
+    }
+  };
+
+  beat();
+  heartbeatTimer = setInterval(beat, Number.isFinite(intervalMs) ? intervalMs : 60000);
+}
+
 function startManifestSync() {
   if (process.env.PLAYER_MANIFEST_SYNC === '0') {
     console.info('Player manifest sync disabled by PLAYER_MANIFEST_SYNC=0.');
@@ -1125,13 +1403,23 @@ app.commandLine.appendSwitch('disable-pinch');
 // so media synced by the cms-worker starts playing without a restart.
 app.commandLine.appendSwitch('allow-file-access-from-files');
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   powerSaveBlockerId = powerSaveBlocker.start('prevent-display-sleep');
   registerPlayerProtocol();
   startLanServer();
-  startManifestSync();
+
+  // Show the window first so a screen that cannot reach the CMS still displays
+  // its cached playlist instead of staying black while registration retries.
   createWindow();
-  startPlayerWebSocket();
+
+  const registered = await registerWithCms();
+  if (registered) {
+    startHeartbeat();
+    startManifestSync();
+    startPlayerWebSocket();
+  } else {
+    console.warn('Skipping manifest sync and gateway connection until this player is registered.');
+  }
 });
 
 app.on('activate', () => {
@@ -1146,6 +1434,10 @@ app.on('window-all-closed', () => {
   if (manifestSyncTimer) {
     clearInterval(manifestSyncTimer);
     manifestSyncTimer = undefined;
+  }
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = undefined;
   }
   if (scheduleEvalTimer) {
     clearInterval(scheduleEvalTimer);
