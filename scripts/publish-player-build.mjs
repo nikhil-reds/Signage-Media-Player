@@ -5,8 +5,8 @@
  *   npm run build:windows && npm run build:linux
  *   PLAYER_BUILD_VERSION=1.0.1 npm run publish:player-build
  *
- * The CMS resolves artifacts at player-builds/{version}/{windows|linux}/{file},
- * which must stay in sync with lib/player-builds.ts in the CMS repo.
+ * The CMS resolves artifacts through player-builds/latest/{windows|linux}/{file}.
+ * Every publish also preserves a numbered copy under player-builds/{version}/.
  */
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
@@ -62,21 +62,23 @@ for (const artifact of ARTIFACTS) {
     continue;
   }
 
-  const key = `player-builds/${version}/${artifact.subdir}/${artifact.file}`;
-  const upload = new Upload({
-    client: s3,
-    params: {
-      Bucket: bucket,
-      Key: key,
-      Body: createReadStream(localPath),
-      ContentType: artifact.contentType
-    }
-  });
-
   const sizeMb = (stats.size / 1024 / 1024).toFixed(1);
-  process.stdout.write(`upload ${key} (${sizeMb} MB) ... `);
-  await upload.done();
-  console.log('done');
+  for (const channel of [version, 'latest']) {
+    const key = `player-builds/${channel}/${artifact.subdir}/${artifact.file}`;
+    const upload = new Upload({
+      client: s3,
+      params: {
+        Bucket: bucket,
+        Key: key,
+        Body: createReadStream(localPath),
+        ContentType: artifact.contentType
+      }
+    });
+
+    process.stdout.write(`upload ${key} (${sizeMb} MB) ... `);
+    await upload.done();
+    console.log('done');
+  }
   published += 1;
 }
 
@@ -85,5 +87,4 @@ if (published === 0) {
   process.exit(1);
 }
 
-console.log(`\nPublished ${published} artifact(s) as version ${version}. ${skipped} skipped.`);
-console.log(`Set PLAYER_BUILD_VERSION=${version} in the CMS to serve this release.`);
+console.log(`\nPublished ${published} artifact(s) as version ${version} and latest. ${skipped} skipped.`);
