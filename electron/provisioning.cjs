@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { net } = require('electron');
 
 const PROVISIONING_FILENAME = 'provisioning.json';
 const INSTALL_ID_FILENAME = 'install-id';
@@ -147,7 +148,11 @@ async function postJson(url, payload, timeoutMs = 15000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, {
+    // Electron's network layer honours the device's proxy and certificate
+    // configuration. Node's built-in fetch can fail on managed Linux devices
+    // even while a browser on the same device reaches the CMS.
+    const request = typeof net?.fetch === 'function' ? net.fetch.bind(net) : globalThis.fetch;
+    const response = await request(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -162,6 +167,10 @@ async function postJson(url, payload, timeoutMs = 15000) {
       throw error;
     }
     return body;
+  } catch (error) {
+    const cause = error && typeof error === 'object' ? error.cause : null;
+    const detail = cause?.code || cause?.message || '';
+    throw new Error(`CMS request failed${detail ? `: ${detail}` : `: ${error.message}`}`);
   } finally {
     clearTimeout(timer);
   }
