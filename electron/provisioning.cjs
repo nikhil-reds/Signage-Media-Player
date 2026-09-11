@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { net } = require('electron');
+const https = require('node:https');
 
 const PROVISIONING_FILENAME = 'provisioning.json';
 const INSTALL_ID_FILENAME = 'install-id';
@@ -145,35 +145,53 @@ function collectMachineInfo({ app, screen }) {
 }
 
 async function postJson(url, payload, timeoutMs = 15000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    // Electron's network layer honours the device's proxy and certificate
-    // configuration. Node's built-in fetch can fail on managed Linux devices
-    // even while a browser on the same device reaches the CMS.
-    const request = typeof net?.fetch === 'function' ? net.fetch.bind(net) : globalThis.fetch;
-    const response = await request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
+  const target = new URL(url);
+  const body = JSON.stringify(payload);
 
-    const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      const message = body?.message || body?.error || `Request failed (${response.status})`;
-      const error = new Error(message);
-      error.status = response.status;
-      throw error;
-    }
-    return body;
-  } catch (error) {
-    const cause = error && typeof error === 'object' ? error.cause : null;
-    const detail = cause?.code || cause?.message || '';
-    throw new Error(`CMS request failed${detail ? `: ${detail}` : `: ${error.message}`}`);
-  } finally {
-    clearTimeout(timer);
-  }
+  return new Promise((resolve, reject) => {
+    // Use a direct IPv4 HTTPS connection. This avoids broken desktop proxy
+    // settings and IPv6 routes while keeping normal TLS certificate validation.
+    const request = https.request(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port || 443,
+        path: `${target.pathname}${target.search}`,
+        method: 'POST',
+        family: 4,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        },
+        timeout: timeoutMs
+      },
+      (response) => {
+        const chunks = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => {
+          let parsed = null;
+          try {
+            parsed = JSON.parse(Buffer.concat(chunks).toString('utf8') || 'null');
+          } catch {
+            // Keep the response status as the useful diagnostic when an edge
+            // proxy returns a non-JSON error page.
+          }
+          if ((response.statusCode || 500) >= 400) {
+            const error = new Error(parsed?.message || parsed?.error || `Request failed (${response.statusCode})`);
+            error.status = response.statusCode;
+            reject(error);
+            return;
+          }
+          resolve(parsed);
+        });
+      }
+    );
+
+    request.on('timeout', () => request.destroy(new Error('CMS request timed out.')));
+    request.on('error', (error) => reject(new Error(`CMS request failed: ${error.code || error.message}`)));
+    request.write(body);
+    request.end();
+  });
 }
 
 /**
