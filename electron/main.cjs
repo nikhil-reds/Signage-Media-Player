@@ -105,7 +105,7 @@ let playerDeviceToken =
   process.env.PLAYER_WS_TOKEN ||
   startupConfig.deviceToken ||
   '';
-const playerWsUrl =
+let playerWsUrl =
   process.env.PLAYER_WS_URL ||
   startupConfig.playerWsUrl ||
   startupConfig.webSocketUrl ||
@@ -1316,7 +1316,12 @@ async function registerWithCms({ strict = false } = {}) {
     playerDeviceId = identity.deviceId;
     playerDeviceToken = identity.deviceToken;
     playerTenantId = playerProvisioning.tenantId || playerTenantId;
-    manifestUrl = process.env.PLAYER_MANIFEST_URL || manifestUrlForDevice(identity.deviceId) || manifestUrl;
+    manifestUrl =
+      process.env.PLAYER_MANIFEST_URL ||
+      identity.manifestUrl ||
+      manifestUrlForDevice(identity.deviceId) ||
+      manifestUrl;
+    playerWsUrl = process.env.PLAYER_WS_URL || identity.webSocketUrl || playerWsUrl;
 
     const config = readConfig();
     writeConfig({
@@ -1326,6 +1331,8 @@ async function registerWithCms({ strict = false } = {}) {
       deviceToken: playerDeviceToken,
       tenantId: playerTenantId,
       manifestUrl,
+      playerWsUrl,
+      cdnUrl: identity.cdnUrl || config.cdnUrl || cdnBaseUrl || '',
       registrationId: playerProvisioning.registrationId,
       installId: playerInstallId,
       registeredAt: new Date().toISOString()
