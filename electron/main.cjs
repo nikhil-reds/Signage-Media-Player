@@ -128,7 +128,7 @@ const cdnBaseUrl =
   startupConfig.cdnBaseUrl ||
   '';
 const s3BaseUrl = process.env.PLAYER_S3_BASE_URL || startupConfig.s3BaseUrl || '';
-const playerWindowMode = process.env.PLAYER_WINDOW_MODE || startupConfig.windowMode || 'windowed';
+const playerWindowMode = process.env.PLAYER_WINDOW_MODE || startupConfig.windowMode || 'kiosk';
 const playerKioskMode =
   playerWindowMode === 'kiosk' ||
   process.env.PLAYER_KIOSK === '1' ||
@@ -173,6 +173,21 @@ function registerPlayerProtocol() {
   });
 }
 
+function enforcePlayerKioskWindow() {
+  if (!playerKioskMode || !mainWindow || mainWindow.isDestroyed()) return;
+
+  const display = screen.getPrimaryDisplay();
+  mainWindow.setBounds(display.bounds);
+  mainWindow.setSkipTaskbar(true);
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  mainWindow.setFullScreen(true);
+  mainWindow.setKiosk(true);
+  mainWindow.moveTop();
+  mainWindow.focus();
+  app.focus({ steal: true });
+}
+
 function createWindow() {
   const display = screen.getPrimaryDisplay();
   const bounds = playerKioskMode ? display.bounds : display.workArea;
@@ -189,6 +204,8 @@ function createWindow() {
     fullscreen: playerKioskMode,
     kiosk: playerKioskMode,
     frame: !playerKioskMode,
+    skipTaskbar: playerKioskMode,
+    alwaysOnTop: playerKioskMode,
     autoHideMenuBar: true,
     backgroundColor: '#000000',
     show: false,
@@ -228,17 +245,28 @@ function createWindow() {
       event.preventDefault();
     }
   });
+  if (playerKioskMode) {
+    mainWindow.on('leave-full-screen', () => {
+      setTimeout(enforcePlayerKioskWindow, 100);
+    });
+    mainWindow.on('unmaximize', () => {
+      setTimeout(enforcePlayerKioskWindow, 100);
+    });
+    mainWindow.on('restore', () => {
+      setTimeout(enforcePlayerKioskWindow, 100);
+    });
+    mainWindow.on('blur', () => {
+      if (pairingWindow && !pairingWindow.isDestroyed()) return;
+      setTimeout(enforcePlayerKioskWindow, 250);
+    });
+  }
   mainWindow.once('ready-to-show', () => {
     mainWindow.setBounds({ x, y, width, height });
-    if (playerKioskMode) {
-      mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-      mainWindow.setFullScreen(true);
-      mainWindow.setKiosk(true);
-    }
+    enforcePlayerKioskWindow();
     mainWindow.show();
-    mainWindow.moveTop();
-    mainWindow.focus();
-    app.focus({ steal: true });
+    enforcePlayerKioskWindow();
+    setTimeout(enforcePlayerKioskWindow, 250);
+    setTimeout(enforcePlayerKioskWindow, 1000);
   });
   mainWindow.on('closed', () => {
     mainWindow = undefined;

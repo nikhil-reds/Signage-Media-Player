@@ -346,7 +346,7 @@ class SignagePlayer {
           style.id = styleId;
           document.head.appendChild(style);
         }
-        style.textContent = 'html, body { margin: 0 !important; width: 100% !important; height: 100% !important; }';
+        style.textContent = 'html, body { margin: 0 !important; width: 100% !important; height: 100% !important; } html, body, * { cursor: none !important; }';
         window.scrollTo(0, ${scrollY});
 
         // Some HTML experiences measure the viewport during hydration. A webview

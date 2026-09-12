@@ -17,16 +17,27 @@ body,
   background: #000;
 }
 
-body {
-  cursor: none;
-  user-select: none;
-}
-
 #viewport {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
+}
+
+body {
+  user-select: none;
+}
+
+html,
+body,
+#viewport,
+#playlist-stage,
+.media-element,
+.media-html-frame,
+.media-html-webview,
+iframe,
+webview {
+  cursor: none !important;
 }
 
 #playlist-stage {
@@ -93,6 +104,13 @@ iframe.media-element {
   display: block;
   border: 0;
   background: #000;
+}
+
+.media-html-frame,
+.media-html-webview,
+iframe,
+webview {
+  pointer-events: none;
 }
 
 .media-element--pending {
