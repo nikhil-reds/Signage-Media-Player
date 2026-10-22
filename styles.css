@@ -74,6 +74,19 @@ webview {
   object-position: center;
 }
 
+.media-zone {
+  position: absolute;
+  overflow: hidden;
+  background: #000;
+}
+
+.media-zone .media-element {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 video.media-element {
   backface-visibility: hidden;
   transform: translateZ(0);

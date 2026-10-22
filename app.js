@@ -34,6 +34,9 @@ class SignagePlayer {
     this.refreshIntervalMs = 1000;
     this.resizeObserver = null;
     this.htmlViewport = null;
+    this.zones = [];
+    this.multiZonePlayers = [];
+    this.isMultiZone = false;
   }
 
   async start() {
@@ -93,7 +96,8 @@ class SignagePlayer {
       return {
         refreshIntervalMs: this.refreshIntervalMs,
         playbackMode: 'scheduled',
-        playlist: scheduledPlaylist
+        playlist: scheduledPlaylist,
+        zones: this.zones
       };
     }
 
@@ -120,11 +124,14 @@ class SignagePlayer {
     }
 
     const renderSize = this.resolveRenderSize(config, playlist);
+    const zones = this.normalizeZones(config.zones, renderSize);
+    const isMultiZone = zones.length > 1 || playlist.some((item) => item.zoneId && item.zoneId !== 'full-screen');
 
     const key = JSON.stringify(
       {
         playbackMode,
         renderSize,
+        zones,
         playlist: playlist.map((item) => [
           item.src,
           item.type,
@@ -139,7 +146,10 @@ class SignagePlayer {
           item.navigationPolicy,
           item.reloadPolicy,
           item.scrollY,
-          item.htmlScrollY
+          item.htmlScrollY,
+          item.zoneId,
+          item.x,
+          item.y
         ])
       }
     );
@@ -150,15 +160,21 @@ class SignagePlayer {
     this.playlistKey = key;
     this.playbackMode = playbackMode;
     this.playlist = playlist;
+    this.zones = zones;
+    this.isMultiZone = isMultiZone;
     this.setRenderSize(renderSize);
     this.failedSources.clear();
 
     if (changed || restart || this.index >= this.playlist.length) {
       this.index = 0;
     }
-
-    console.info(`Playlist updated: ${this.playbackMode}, ${this.playlist.length} item(s).`);
-    this.playCurrent();
+    console.info(`Playlist updated: ${this.playbackMode}, ${this.playlist.length} item(s), multiZone=${this.isMultiZone}.`);
+    if (this.isMultiZone) {
+      this.startMultiZonePlayback();
+    } else {
+      this.stopMultiZonePlayback();
+      this.playCurrent();
+    }
   }
 
   watchConfig() {
@@ -199,6 +215,7 @@ class SignagePlayer {
       fit,
       position,
       playbackMode,
+      zoneId: item.zoneId || 'full-screen',
       muted: item.muted !== false,
       sourceType: item.sourceType === 'external_url' ? 'external_url' : item.sourceType === 'upload' ? 'upload' : undefined,
       navigationPolicy: ['same_origin', 'allowlist', 'allow_all'].includes(item.navigationPolicy)
@@ -254,6 +271,41 @@ class SignagePlayer {
     return width > 0 && height > 0 ? { width, height } : null;
   }
 
+  normalizeZones(rawZones, renderSize) {
+    const fallback = {
+      id: 'full-screen',
+      name: 'Full Screen',
+      x: 0,
+      y: 0,
+      width: renderSize.width,
+      height: renderSize.height
+    };
+
+    if (!Array.isArray(rawZones) || rawZones.length === 0) return [fallback];
+
+    const zones = rawZones
+      .map((zone) => {
+        const id = String(zone?.id || '').trim();
+        const x = Number(zone?.x ?? zone?.left ?? 0);
+        const y = Number(zone?.y ?? zone?.top ?? 0);
+        const width = Number(zone?.width ?? zone?.w);
+        const height = Number(zone?.height ?? zone?.h);
+        if (!id || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+          return null;
+        }
+        return {
+          id,
+          name: String(zone?.name || id),
+          x,
+          y,
+          width,
+          height
+        };
+      })
+      .filter(Boolean);
+
+    return zones.length > 0 ? zones : [fallback];
+  }
   readNamedSize(candidate) {
     if (!candidate || typeof candidate !== 'object') return null;
 
@@ -390,6 +442,79 @@ class SignagePlayer {
     element.style.height = '100%';
   }
 
+  stopMultiZonePlayback() {
+    for (const zonePlayer of this.multiZonePlayers) {
+      zonePlayer.stop();
+    }
+    this.multiZonePlayers = [];
+    this.stage.replaceChildren();
+    if (this.htmlViewport?.frame?.isConnected) {
+      this.htmlViewport.frame.remove();
+    }
+    this.htmlViewport = null;
+  }
+
+  startMultiZonePlayback() {
+    clearTimeout(this.advanceTimer);
+    clearTimeout(this.retryTimer);
+    clearTimeout(this.htmlLoadTimer);
+    this.currentElement = null;
+    this.pendingElement = null;
+    this.stopMultiZonePlayback();
+
+    const zoneMap = new Map(this.zones.map((zone) => [zone.id, zone]));
+    const fallbackZone = this.zones[0] || {
+      id: 'full-screen',
+      name: 'Full Screen',
+      x: 0,
+      y: 0,
+      width: this.renderSize.width,
+      height: this.renderSize.height
+    };
+    const itemsByZone = new Map();
+
+    for (const item of this.playlist) {
+      if (item.type === 'html') {
+        console.warn(`Skipping HTML item in multi-zone mode: ${item.src}`);
+        continue;
+      }
+      const zone = zoneMap.get(item.zoneId) || fallbackZone;
+      if (!itemsByZone.has(zone.id)) itemsByZone.set(zone.id, []);
+      itemsByZone.get(zone.id).push({
+        ...item,
+        zoneId: zone.id,
+        x: 0,
+        y: 0,
+        width: zone.width,
+        height: zone.height
+      });
+    }
+
+    for (const zone of this.zones) {
+      const items = itemsByZone.get(zone.id) || [];
+      if (items.length === 0) continue;
+      const zoneElement = document.createElement('div');
+      zoneElement.className = 'media-zone';
+      zoneElement.dataset.zoneId = zone.id;
+      zoneElement.style.position = 'absolute';
+      zoneElement.style.overflow = 'hidden';
+      zoneElement.style.background = '#000';
+      zoneElement.style.left = `${zone.x}px`;
+      zoneElement.style.top = `${zone.y}px`;
+      zoneElement.style.width = `${zone.width}px`;
+      zoneElement.style.height = `${zone.height}px`;
+      this.stage.appendChild(zoneElement);
+
+      const zonePlayer = new ZonePlayer(this, zoneElement, zone, items);
+      this.multiZonePlayers.push(zonePlayer);
+      zonePlayer.play();
+    }
+
+    if (this.multiZonePlayers.length === 0) {
+      console.warn('No playable zone items found; falling back to default playback.');
+      this.applyConfig({ playbackMode: 'default', playlist: [this.defaultItem] }, { restart: true });
+    }
+  }
   playCurrent() {
     clearTimeout(this.advanceTimer);
     clearTimeout(this.retryTimer);
@@ -612,7 +737,7 @@ class SignagePlayer {
     });
 
     this.pendingElement = video;
-    this.stage.appendChild(video);
+    if (!video.isConnected) this.stage.appendChild(video);
     video.src = item.src;
   }
 
@@ -631,7 +756,7 @@ class SignagePlayer {
       this.handleMediaError(item);
     });
 
-    this.stage.appendChild(img);
+    if (!img.isConnected) this.stage.appendChild(img);
 
     const durationMs = Number.isFinite(item.durationMs) && item.durationMs > 0
       ? item.durationMs
@@ -652,6 +777,101 @@ class SignagePlayer {
   }
 }
 
+class ZonePlayer {
+  constructor(player, host, zone, items) {
+    this.player = player;
+    this.host = host;
+    this.zone = zone;
+    this.items = items;
+    this.index = 0;
+    this.timer = null;
+    this.currentElement = null;
+    this.failedSources = new Set();
+  }
+
+  stop() {
+    clearTimeout(this.timer);
+    this.host.remove();
+  }
+
+  play() {
+    clearTimeout(this.timer);
+    const item = this.items[this.index];
+    if (!item) return;
+    if (item.type === 'image') {
+      this.mountImage(item);
+    } else {
+      this.mountVideo(item);
+    }
+  }
+
+  next() {
+    if (this.items.length === 0) return;
+    this.index = (this.index + 1) % this.items.length;
+    this.play();
+  }
+
+  swap(element) {
+    if (this.currentElement && this.currentElement !== element) {
+      this.currentElement.remove();
+    }
+    element.classList.remove('media-element--pending');
+    this.currentElement = element;
+  }
+
+  handleError(item) {
+    console.warn(`Zone ${this.zone.id} failed to load ${item.src}; skipping.`);
+    this.failedSources.add(item.src);
+    if (this.failedSources.size >= this.items.length) {
+      this.host.replaceChildren();
+      return;
+    }
+    this.timer = setTimeout(() => this.next(), 2000);
+  }
+
+  mountVideo(item) {
+    const video = document.createElement('video');
+    video.className = 'media-element media-element--pending';
+    this.player.applyLayout(video, item);
+    video.autoplay = true;
+    video.muted = item.muted !== false;
+    video.defaultMuted = video.muted;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.controls = false;
+    video.disablePictureInPicture = true;
+    video.disableRemotePlayback = true;
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
+    video.loop = this.items.length === 1 && item.loop !== false;
+    video.addEventListener('ended', () => {
+      if (!video.loop) this.next();
+    });
+    video.addEventListener('error', () => this.handleError(item));
+    video.addEventListener('canplay', () => {
+      video.play().then(() => this.swap(video)).catch(() => {
+        this.timer = setTimeout(() => this.play(), 2000);
+      });
+    });
+    this.host.appendChild(video);
+    video.src = item.src;
+  }
+
+  mountImage(item) {
+    const img = document.createElement('img');
+    img.className = 'media-element media-element--pending';
+    img.alt = '';
+    this.player.applyLayout(img, item);
+    img.addEventListener('error', () => this.handleError(item));
+    img.addEventListener('load', () => {
+      this.swap(img);
+      const durationMs = Number.isFinite(item.durationMs) && item.durationMs > 0 ? item.durationMs : 8000;
+      this.timer = setTimeout(() => this.next(), durationMs);
+    });
+    this.host.appendChild(img);
+    img.src = item.src;
+  }
+}
 document.addEventListener('DOMContentLoaded', () => {
   const viewport = document.getElementById('viewport');
   const stage = document.getElementById('playlist-stage');

@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const { protocolFileResponse } = require('./file-response.cjs');
 
 let mainWindow;
@@ -451,7 +452,7 @@ function isHtmlItem(item) {
   return item?.type === 'html';
 }
 
-async function downloadFile(url, targetPath) {
+async function downloadFile(url, targetPath, expected = {}) {
   const tmpPath = `${targetPath}.tmp`;
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
@@ -460,17 +461,96 @@ async function downloadFile(url, targetPath) {
     throw new Error(`Download failed with HTTP ${response.status}: ${url}`);
   }
 
-  await new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(tmpPath);
-    const stream = require('node:stream');
-    stream.Readable.fromWeb(response.body).pipe(file);
-    file.on('finish', resolve);
-    file.on('error', reject);
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      const file = fs.createWriteStream(tmpPath);
+      const stream = require('node:stream');
+      stream.Readable.fromWeb(response.body).pipe(file);
+      file.on('finish', resolve);
+      file.on('error', reject);
+    });
 
-  fs.renameSync(tmpPath, targetPath);
+    if (Number.isFinite(expected.sizeBytes)) {
+      const actualSize = fs.statSync(tmpPath).size;
+      if (actualSize !== expected.sizeBytes) {
+        throw new Error(`Downloaded size mismatch for ${url}: expected ${expected.sizeBytes}, got ${actualSize}`);
+      }
+    }
+
+    if (typeof expected.sha256 === 'string' && expected.sha256.length > 0) {
+      const actualHash = await sha256File(tmpPath);
+      if (actualHash.toLowerCase() !== expected.sha256.toLowerCase()) {
+        throw new Error(`Downloaded SHA-256 mismatch for ${url}: expected ${expected.sha256}, got ${actualHash}`);
+      }
+    }
+
+    fs.renameSync(tmpPath, targetPath);
+  } catch (error) {
+    fs.rmSync(tmpPath, { force: true });
+    throw error;
+  }
 }
 
+function sha256File(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(hash.digest('hex')));
+  });
+}
+
+function playlistManifestUrlFor(deviceManifestUrl, playlistId, playlistVersion) {
+  const manifest = new URL(deviceManifestUrl);
+  manifest.pathname = `/playlists/${encodeURIComponent(playlistId)}/v${encodeURIComponent(playlistVersion)}.json`;
+  manifest.search = '';
+  manifest.hash = '';
+  return manifest.toString();
+}
+
+async function hydrateDeviceManifest(manifest, deviceManifestUrl) {
+  if (!manifest || manifest.schemaVersion < 3) return manifest;
+
+  const refs = [];
+  if (manifest.active?.playlistId && manifest.active?.playlistVersion) {
+    refs.push(manifest.active);
+  }
+  if (Array.isArray(manifest.schedules)) {
+    for (const schedule of manifest.schedules) {
+      if (schedule.playlistId && schedule.playlistVersion) {
+        refs.push({ playlistId: schedule.playlistId, playlistVersion: schedule.playlistVersion });
+      }
+    }
+  }
+
+  const seen = new Set();
+  const playlists = [];
+  for (const ref of refs) {
+    const key = `${ref.playlistId}:${ref.playlistVersion}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const playlistUrl = playlistManifestUrlFor(deviceManifestUrl, ref.playlistId, ref.playlistVersion);
+    const playlistManifest = await fetchJson(playlistUrl);
+    playlists.push({
+      id: playlistManifest.playlistId || ref.playlistId,
+      playlistVersion: playlistManifest.playlistVersion || ref.playlistVersion,
+      canvas: playlistManifest.canvas,
+      zones: Array.isArray(playlistManifest.zones) ? playlistManifest.zones : [],
+      items: Array.isArray(playlistManifest.items) ? playlistManifest.items : []
+    });
+  }
+
+  const activePlaylist = manifest.active
+    ? playlists.find((playlist) => playlist.id === manifest.active.playlistId && playlist.playlistVersion === manifest.active.playlistVersion)
+    : null;
+
+  return {
+    ...manifest,
+    playlist: activePlaylist?.items || [],
+    playlists
+  };
+}
 function toCdnUrl(url) {
   if (!cdnBaseUrl) return url;
 
@@ -495,7 +575,7 @@ function toCdnUrl(url) {
 async function syncManifestOnce() {
   if (!manifestUrl) return;
 
-  const manifest = await fetchJson(manifestUrl);
+  const manifest = await hydrateDeviceManifest(await fetchJson(manifestUrl), manifestUrl);
   const manifestItems = getDownloadableManifestItems(manifest);
   const state = readSyncState();
   const mediaState = state.media && typeof state.media === 'object' ? state.media : {};
@@ -511,14 +591,17 @@ async function syncManifestOnce() {
     if (isExternalHtmlItem(item)) continue;
     const targetPath = safeLocalSrc(item.src);
     const downloadUrl = toCdnUrl(item.url);
-    const cached = mediaState[item.src];
+    const cacheKey = item.sha256 || item.src;
+    const cached = mediaState[cacheKey];
     if (cached?.url === downloadUrl && fs.existsSync(targetPath)) {
       continue;
     }
 
     console.info(`Downloading manifest media ${downloadUrl} -> ${item.src}`);
-    await downloadFile(downloadUrl, targetPath);
-    mediaState[item.src] = {
+    await downloadFile(downloadUrl, targetPath, { sha256: item.sha256, sizeBytes: item.sizeBytes });
+    mediaState[cacheKey] = {
+      src: item.src,
+      sha256: item.sha256,
       url: downloadUrl,
       downloadedAt: new Date().toISOString()
     };
@@ -550,12 +633,12 @@ function getDownloadableManifestItems(manifest) {
           const end = Date.parse(schedule.endAt);
           return Number.isFinite(end) && end > now;
         })
-        .map((schedule) => schedule.playlistId)
-        .filter((playlistId) => typeof playlistId === 'string' && playlistId.length > 0)
+        .map((schedule) => `${schedule.playlistId}:${schedule.playlistVersion || ''}`)
+        .filter((playlistKey) => typeof playlistKey === 'string' && playlistKey.length > 1)
     );
 
     for (const playlist of manifest.playlists) {
-      if (!downloadablePlaylistIds.has(playlist.id)) continue;
+      if (!downloadablePlaylistIds.has(`${playlist.id}:${playlist.playlistVersion || ''}`)) continue;
       if (Array.isArray(playlist.items)) {
         items.push(...playlist.items);
       }
@@ -637,12 +720,13 @@ function armNextScheduleBoundary(manifest = readManifestCache()) {
   scheduleBoundaryAtMs = boundary.at;
 
   const delayMs = Math.max(0, boundary.at - verifiedNow().getTime());
+  const timerDelayMs = Math.min(delayMs, 2147483647);
   scheduleBoundaryTimer = setTimeout(() => {
     scheduleBoundaryTimer = undefined;
     scheduleBoundaryAtMs = 0;
     console.info(`Schedule boundary reached (${boundary.label}); applying cached manifest.`);
     applyScheduledPlaylist();
-  }, delayMs);
+  }, timerDelayMs);
 
   console.info(
     `Next schedule boundary ${boundary.label} at ${new Date(boundary.at).toISOString()} (${delayMs}ms)`
@@ -688,7 +772,7 @@ function selectScheduledPlaylist(manifest) {
   // the most recently published representation of that playlist.
   const playlist = [...manifest.playlists]
     .reverse()
-    .find((candidate) => candidate.id === active.playlistId);
+    .find((candidate) => candidate.id === active.playlistId && (!active.playlistVersion || candidate.playlistVersion === active.playlistVersion));
   return {
     playlist: Array.isArray(playlist?.items) ? playlist.items : [],
     playlistConfig: playlist || {},
@@ -734,6 +818,9 @@ function readResolution(source) {
 }
 
 function resolvePlaylistResolution(playlistConfig, items) {
+  const canvasResolution = readResolution(playlistConfig?.canvas);
+  if (canvasResolution) return canvasResolution;
+
   const configResolution = readResolution(playlistConfig);
   if (configResolution) return configResolution;
 
@@ -819,6 +906,8 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
   config.activeScheduleEndAt = selected.activeSchedule?.endAt || null;
   config.appliedAt = new Date().toISOString();
   config.playlist = playbackPlaylist;
+  config.zones = Array.isArray(selected.playlistConfig?.zones) ? selected.playlistConfig.zones : [];
+  config.canvas = selected.playlistConfig?.canvas || null;
   clearPlaylistResolution(config);
   applyPlaylistResolution(config, nextResolution);
   writeConfig(config);
@@ -845,7 +934,7 @@ async function syncManifestFromPush(notification) {
     throw new Error('manifest.updated did not include a manifestUrl and no PLAYER_MANIFEST_URL is configured');
   }
 
-  const manifest = await fetchJson(pushedManifestUrl);
+  const manifest = await hydrateDeviceManifest(await fetchJson(pushedManifestUrl), pushedManifestUrl);
   const manifestItems = getDownloadableManifestItems(manifest);
   const mediaState = state.media && typeof state.media === 'object' ? state.media : {};
 
@@ -855,12 +944,15 @@ async function syncManifestFromPush(notification) {
     if (isExternalHtmlItem(item)) continue;
     const targetPath = safeLocalSrc(item.src);
     const downloadUrl = toCdnUrl(item.url);
-    const cached = mediaState[item.src];
+    const cacheKey = item.sha256 || item.src;
+    const cached = mediaState[cacheKey];
     if (cached?.url === downloadUrl && fs.existsSync(targetPath)) continue;
 
     console.info(`Downloading pushed manifest media ${downloadUrl} -> ${item.src}`);
-    await downloadFile(downloadUrl, targetPath);
-    mediaState[item.src] = {
+    await downloadFile(downloadUrl, targetPath, { sha256: item.sha256, sizeBytes: item.sizeBytes });
+    mediaState[cacheKey] = {
+      src: item.src,
+      sha256: item.sha256,
       url: downloadUrl,
       downloadedAt: new Date().toISOString()
     };
