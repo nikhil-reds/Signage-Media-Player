@@ -9,7 +9,7 @@ class SignagePlayer {
     this.stage = stage;
     this.defaultRenderSize = { width: 1920, height: 1080 };
     this.renderSize = this.defaultRenderSize;
-    this.verticalAlign = 'top';
+    this.verticalAlign = 'center';
     this.defaultItem = {
       id: 'fallback',
       type: 'video',
@@ -112,7 +112,7 @@ class SignagePlayer {
     if (Number.isFinite(config.refreshIntervalMs) && config.refreshIntervalMs >= 2000) {
       this.refreshIntervalMs = config.refreshIntervalMs;
     }
-    this.verticalAlign = config.verticalAlign === 'center' ? 'center' : 'top';
+    this.verticalAlign = config.verticalAlign === 'top' ? 'top' : 'center';
 
     const playbackMode = config.playbackMode === 'scheduled' ? 'scheduled' : 'default';
     let playlist = (Array.isArray(config.playlist) ? config.playlist : [])
@@ -125,7 +125,9 @@ class SignagePlayer {
 
     const renderSize = this.resolveRenderSize(config, playlist);
     const zones = this.normalizeZones(config.zones, renderSize);
-    const isMultiZone = zones.length > 1 || playlist.some((item) => item.zoneId && item.zoneId !== 'full-screen');
+    const isMultiZone = zones.length > 1 ||
+      zones.some((zone) => zone.x !== 0 || zone.y !== 0 || zone.width !== renderSize.width || zone.height !== renderSize.height) ||
+      playlist.some((item) => item.zoneId && item.zoneId !== 'full-screen');
 
     const key = JSON.stringify(
       {
@@ -293,13 +295,14 @@ class SignagePlayer {
         if (!id || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
           return null;
         }
+        // CMS zone coordinates are percentages of the playlist canvas.
         return {
           id,
           name: String(zone?.name || id),
-          x,
-          y,
-          width,
-          height
+          x: x * renderSize.width / 100,
+          y: y * renderSize.height / 100,
+          width: width * renderSize.width / 100,
+          height: height * renderSize.height / 100
         };
       })
       .filter(Boolean);
@@ -421,11 +424,11 @@ class SignagePlayer {
     element.style.objectFit = item.fit || 'scale-down';
     element.style.objectPosition = item.position || 'center';
 
-    const x = Number(item.x ?? item.left);
-    const y = Number(item.y ?? item.top);
+    const x = Number(item.x ?? item.left ?? 0);
+    const y = Number(item.y ?? item.top ?? 0);
     const width = Number(item.width);
     const height = Number(item.height);
-    const hasPosition = Number.isFinite(x) || Number.isFinite(y);
+    const hasPosition = (Number.isFinite(x) && x !== 0) || (Number.isFinite(y) && y !== 0);
     const hasSize = Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0;
 
     element.style.inset = '';
@@ -474,10 +477,6 @@ class SignagePlayer {
     const itemsByZone = new Map();
 
     for (const item of this.playlist) {
-      if (item.type === 'html') {
-        console.warn(`Skipping HTML item in multi-zone mode: ${item.src}`);
-        continue;
-      }
       const zone = zoneMap.get(item.zoneId) || fallbackZone;
       if (!itemsByZone.has(zone.id)) itemsByZone.set(zone.id, []);
       itemsByZone.get(zone.id).push({
@@ -714,7 +713,9 @@ class SignagePlayer {
     video.setAttribute('webkit-playsinline', '');
     video.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
 
-    const loopAlone = this.playlist.length === 1 && item.loop !== false;
+    const durationMs = Number(item.durationMs);
+    const hasDuration = Number.isFinite(durationMs) && durationMs > 0;
+    const loopAlone = !hasDuration && this.playlist.length === 1 && item.loop !== false;
     video.loop = loopAlone;
 
     video.addEventListener('ended', () => {
@@ -731,6 +732,7 @@ class SignagePlayer {
       video.play().then(() => {
         console.info(`Video playing: ${item.src} (mode=${item.playbackMode}, loop=${video.loop})`);
         this.swapToReadyElement(video);
+        if (hasDuration) this.advanceTimer = setTimeout(() => this.next(), durationMs);
       }).catch(() => {
         this.retryTimer = setTimeout(() => this.playCurrent(), 2000);
       });
@@ -800,6 +802,8 @@ class ZonePlayer {
     if (!item) return;
     if (item.type === 'image') {
       this.mountImage(item);
+    } else if (item.type === 'html') {
+      this.mountHtml(item);
     } else {
       this.mountVideo(item);
     }
@@ -843,13 +847,18 @@ class ZonePlayer {
     video.disableRemotePlayback = true;
     video.setAttribute('webkit-playsinline', '');
     video.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback');
-    video.loop = this.items.length === 1 && item.loop !== false;
+    const durationMs = Number(item.durationMs);
+    const hasDuration = Number.isFinite(durationMs) && durationMs > 0;
+    video.loop = !hasDuration && this.items.length === 1 && item.loop !== false;
     video.addEventListener('ended', () => {
       if (!video.loop) this.next();
     });
     video.addEventListener('error', () => this.handleError(item));
     video.addEventListener('canplay', () => {
-      video.play().then(() => this.swap(video)).catch(() => {
+      video.play().then(() => {
+        this.swap(video);
+        if (hasDuration) this.timer = setTimeout(() => this.next(), durationMs);
+      }).catch(() => {
         this.timer = setTimeout(() => this.play(), 2000);
       });
     });
@@ -870,6 +879,60 @@ class ZonePlayer {
     });
     this.host.appendChild(img);
     img.src = item.src;
+  }
+
+  mountHtml(item) {
+    const isRemote = item.sourceType === 'external_url' || this.player.isRemoteUrl(item.src);
+    const frame = document.createElement('div');
+    frame.className = 'media-element media-html-frame media-element--pending';
+    frame.style.inset = '0';
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.overflow = 'hidden';
+    const html = document.createElement(isRemote ? 'iframe' : 'webview');
+    html.className = 'media-html-webview';
+    html.style.position = 'absolute';
+    html.style.inset = '0';
+    html.style.width = '100%';
+    html.style.height = '100%';
+    html.style.border = '0';
+    if (isRemote) {
+      html.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      html.setAttribute('allow', 'autoplay; fullscreen');
+    } else {
+      html.setAttribute('allowpopups', 'false');
+      html.setAttribute('partition', `persist:signlink-html-${item.id || 'default'}`);
+    }
+    const complete = () => {
+      if (this.currentElement === frame) return;
+      clearTimeout(this.timer);
+      this.swap(frame);
+      const durationMs = Number(item.durationMs) > 0 ? Number(item.durationMs) : 20000;
+      this.timer = setTimeout(() => this.next(), durationMs);
+    };
+    if (isRemote) {
+      html.addEventListener('load', complete);
+      html.addEventListener('error', () => this.handleError(item));
+    } else {
+      html.addEventListener('dom-ready', () => {
+        this.player.applyHtmlViewportReset(html, item);
+        complete();
+      });
+      html.addEventListener('did-fail-load', (event) => {
+        if (event.errorCode !== -3) this.handleError(item);
+      });
+      html.addEventListener('will-navigate', (event) => {
+        if (!this.player.isNavigationAllowed(item, event.url)) event.preventDefault();
+      });
+      html.addEventListener('new-window', (event) => event.preventDefault());
+    }
+    frame.appendChild(html);
+    this.host.appendChild(frame);
+    this.timer = setTimeout(() => {
+      if (isRemote) complete();
+      else this.handleError(item);
+    }, Number(item.loadTimeoutMs) > 0 ? Number(item.loadTimeoutMs) : 15000);
+    html.src = item.src;
   }
 }
 document.addEventListener('DOMContentLoaded', () => {

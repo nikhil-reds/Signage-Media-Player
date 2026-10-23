@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, powerSaveBlocker, protocol, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, powerSaveBlocker, protocol, screen } = require('electron');
 const WebSocket = require('ws');
 const http = require('node:http');
 const fs = require('node:fs');
@@ -234,10 +234,6 @@ function createWindow() {
   mainWindow.webContents.on('before-input-event', (event, input) => {
     const zoomKey = input.key === '+' || input.key === '=' || input.key === '-' || input.key === '0';
     if ((input.control || input.meta) && zoomKey) event.preventDefault();
-    if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'p') {
-      event.preventDefault();
-      void openRegistrationWindow();
-    }
   });
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event, targetUrl) => {
@@ -581,6 +577,8 @@ function toCdnUrl(url) {
   const s3Bases = configuredS3Base
     ? [configuredS3Base]
     : [
+        'https://redsxp-assets.s3.ap-south-1.amazonaws.com',
+        'https://redsxp-assets.s3.amazonaws.com',
         'https://redsxp-media-processed.s3.ap-south-1.amazonaws.com',
         'https://redsxp-media-processed.s3.amazonaws.com'
       ];
@@ -861,6 +859,11 @@ function derivePlaylistResolution(items) {
 }
 
 function resolvePlaylistResolution(playlistConfig, items) {
+  const canvas = playlistConfig?.canvas;
+  const canvasResolution = canvas && Number(canvas.width) > 0 && Number(canvas.height) > 0
+    ? { width: Number(canvas.width), height: Number(canvas.height) }
+    : null;
+  if (canvasResolution) return canvasResolution;
   const configResolution = readExplicitPlaylistResolution(playlistConfig);
   if (configResolution) return configResolution;
 
@@ -969,14 +972,19 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
     selected.activeSchedule && nextPlaylist.length > 0 ? 'scheduled' : 'default';
   const playbackPlaylist = nextPlaybackMode === 'scheduled' ? nextPlaylist : [defaultPlaylistItem];
   const nextResolution = resolvePlaylistResolution(selected.playlistConfig, nextPlaylist);
+  const nextZones = nextPlaybackMode === 'scheduled' && Array.isArray(selected.playlistConfig.zones)
+    ? selected.playlistConfig.zones
+    : [];
   const currentKey = JSON.stringify({
     playbackMode: config.playbackMode || 'default',
     resolution: readExplicitPlaylistResolution(config),
+    zones: config.zones || [],
     playlist: config.playlist || []
   });
   const nextKey = JSON.stringify({
     playbackMode: nextPlaybackMode,
     resolution: nextResolution,
+    zones: nextZones,
     playlist: playbackPlaylist
   });
 
@@ -1006,6 +1014,7 @@ function applyScheduledPlaylist(manifest = readManifestCache()) {
   config.activeScheduleEndAt = selected.activeSchedule?.endAt || null;
   config.appliedAt = new Date().toISOString();
   config.playlist = playbackPlaylist;
+  config.zones = nextZones;
   clearPlaylistResolution(config);
   applyPlaylistResolution(config, nextResolution);
   writeConfig(config);
@@ -1238,7 +1247,10 @@ function showPairingWindow({ allowExistingRegistration = false } = {}) {
     pairingWindow = new BrowserWindow({
       width: 720,
       height: 620,
+      parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+      modal: false,
       fullscreen: playerKioskMode,
+      alwaysOnTop: true,
       title: 'Pair this screen',
       backgroundColor: '#0d131e',
       webPreferences: {
@@ -1246,6 +1258,14 @@ function showPairingWindow({ allowExistingRegistration = false } = {}) {
         contextIsolation: true,
         nodeIntegration: false
       }
+    });
+
+    pairingWindow.setAlwaysOnTop(true, 'screen-saver');
+    pairingWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    pairingWindow.once('ready-to-show', () => {
+      pairingWindow.show();
+      pairingWindow.moveTop();
+      pairingWindow.focus();
     });
 
     let settled = false;
@@ -1263,6 +1283,16 @@ function showPairingWindow({ allowExistingRegistration = false } = {}) {
           playerDeviceId = '';
           playerDeviceToken = '';
           const details = await refreshRegistration();
+          setTimeout(() => {
+            if (pairingWindow && !pairingWindow.isDestroyed()) {
+              pairingWindow.close();
+            }
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.show();
+              mainWindow.moveTop();
+              mainWindow.focus();
+            }
+          }, 400);
           return { ok: true, details };
         }
         settled = true;
@@ -1439,6 +1469,13 @@ app.commandLine.appendSwitch('disable-pinch');
 app.commandLine.appendSwitch('allow-file-access-from-files');
 
 app.whenReady().then(async () => {
+  const shortcutRegistered = globalShortcut.register('CommandOrControl+Shift+R', () => {
+    void openRegistrationWindow();
+  });
+  if (!shortcutRegistered) {
+    console.warn('Could not register Ctrl+Shift+R for player registration.');
+  }
+
   powerSaveBlockerId = powerSaveBlocker.start('prevent-display-sleep');
   registerPlayerProtocol();
   startLanServer();
@@ -1462,6 +1499,7 @@ app.on('activate', () => {
 });
 
 app.on('window-all-closed', () => {
+  globalShortcut.unregister('CommandOrControl+Shift+R');
   if (lanServer) {
     lanServer.close();
     lanServer = undefined;

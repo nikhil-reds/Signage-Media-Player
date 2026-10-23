@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const http = require('node:http');
 const https = require('node:https');
 
 const PROVISIONING_FILENAME = 'provisioning.json';
@@ -149,13 +150,18 @@ async function postJson(url, payload, timeoutMs = 15000) {
   const body = JSON.stringify(payload);
 
   return new Promise((resolve, reject) => {
-    // Use a direct IPv4 HTTPS connection. This avoids broken desktop proxy
-    // settings and IPv6 routes while keeping normal TLS certificate validation.
-    const request = https.request(
+    // Use a direct IPv4 connection. Local CMS development uses HTTP while
+    // deployed CMS instances normally use HTTPS.
+    const transport = target.protocol === 'http:' ? http : https;
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') {
+      reject(new Error(`Protocol "${target.protocol.replace(':', '')}" not supported. Expected "http" or "https".`));
+      return;
+    }
+    const request = transport.request(
       {
         protocol: target.protocol,
         hostname: target.hostname,
-        port: target.port || 443,
+        port: target.port || (target.protocol === 'http:' ? 80 : 443),
         path: `${target.pathname}${target.search}`,
         method: 'POST',
         family: 4,

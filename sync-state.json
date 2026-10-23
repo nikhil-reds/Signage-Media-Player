@@ -1,7 +1,8 @@
 {
-  "revision": "2026-08-24T11:00:05.431Z",
-  "syncedAt": "2026-08-31T06:49:44.520Z",
-  "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/SL-PLAYER-001.json",
+  "revision": "2026-10-23T08:51:03.854Z",
+  "contentHash": "5399f64ebe80a7499df0de8c5876f63cfc912942277709565f78d7c4ea19a0aa",
+  "syncedAt": "2026-10-23T08:51:04.267Z",
+  "manifestUrl": "https://d1zue4w6hf1jx0.cloudfront.net/manifests/70168ca1-0ea7-4deb-a565-c62dcf91c94d.json",
   "media": {
     "media/videos/playlist-f6b4788a-633c-4587-b782-3b9371726770.mp4": {
       "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/f6b4788a-633c-4587-b782-3b9371726770.mp4",
@@ -62,6 +63,26 @@
     "media/videos/playlist-69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4": {
       "url": "https://d1zue4w6hf1jx0.cloudfront.net/playlists/69d8f9ac-e750-48a4-99f4-53e11deaa08e.mp4",
       "downloadedAt": "2026-08-10T08:57:23.296Z"
+    },
+    "media/videos/16118765_3840_2160_30fps.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/uploads/c2b1e167-4602-4f79-8653-c499cf42679c/1792737411573-16118765_3840_2160_30fps.mp4",
+      "downloadedAt": "2026-10-23T07:00:40.802Z"
+    },
+    "media/videos/Leo-Ordinary-SnapYT.App.webm": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/uploads/c2b1e167-4602-4f79-8653-c499cf42679c/1792739344006-Leo-Ordinary-SnapYT.App.webm",
+      "downloadedAt": "2026-10-23T07:11:47.513Z"
+    },
+    "media/videos/Avengers-Doomsday-SnapYT.App.webm": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/uploads/c2b1e167-4602-4f79-8653-c499cf42679c/1792744297649-Avengers-Doomsday-SnapYT.App.webm",
+      "downloadedAt": "2026-10-23T08:35:23.658Z"
+    },
+    "media/images/pexels-amirkshot-13494623.jpg": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/uploads/c2b1e167-4602-4f79-8653-c499cf42679c/1792744294563-pexels-amirkshot-13494623.jpg",
+      "downloadedAt": "2026-10-23T08:35:23.868Z"
+    },
+    "media/videos/RAMAYANA-Official-SnapYT.App.mp4": {
+      "url": "https://d1zue4w6hf1jx0.cloudfront.net/uploads/c2b1e167-4602-4f79-8653-c499cf42679c/1792744179884-RAMAYANA-Official-SnapYT.App.mp4",
+      "downloadedAt": "2026-10-23T08:35:26.300Z"
     }
   }
 }

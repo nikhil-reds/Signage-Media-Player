@@ -98,7 +98,7 @@ writable user-data folder.
 
 ### Re-registering a player
 
-Press `Ctrl+Shift+P` while the desktop player is focused to open **Player
+Press `Ctrl+Shift+R` while the desktop player is focused to open **Player
 Registration**. The card shows the saved CMS address, device identity,
 registration ID, install ID, and last registration time. Enter a fresh pairing
 code from the CMS and select **Pair screen** to move the player to the selected
@@ -294,12 +294,55 @@ npm run build:windows
 # BrightSign — creates an SD-card folder and ZIP package
 npm run build:brightsign
 
-# Linux x64 — creates an AppImage
+# Linux x64 and ARM64 — creates AppImages (native Linux)
 npm run build:linux
 
 # macOS — creates a universal Intel/Apple Silicon DMG
 npm run build:mac
 ```
+
+On Windows, build the Linux AppImages with Docker Desktop instead:
+
+```powershell
+cd C:\Users\RDX\Desktop\Signage-Media-Player
+npm run build:windows
+npm run build:linux:docker
+```
+
+The installer is `output/windows/reds-player.exe`. The Linux files are
+`output/linux/reds-player-x86_64.AppImage` and
+`output/linux/reds-player-arm64.AppImage`. Confirm all three files exist before
+publishing; the publisher skips any missing artifact.
+
+### Publish Windows and Linux builds to S3
+
+In the same PowerShell session, supply the S3 bucket and AWS credentials with
+permission to upload player builds. Use the bucket configured for player-build
+downloads in the CMS. Keep credentials out of the README and source control.
+
+```powershell
+$env:AWS_BUCKET = "<player-builds-bucket>"
+$env:AWS_REGION = "ap-south-1"
+$env:AWS_ACCESS_KEY_ID = "<access-key-id>"
+$env:AWS_SECRET_ACCESS_KEY = "<secret-access-key>"
+$env:PLAYER_BUILD_VERSION = "1.0.3"
+npm run publish:player-build
+```
+
+If the AWS settings are already saved in the player project's `.env`, load
+that file explicitly when publishing:
+
+```powershell
+node --env-file=.env scripts/publish-player-build.mjs
+```
+
+Plain `npm run publish:player-build` does not load `.env` automatically and
+reports `Missing AWS_BUCKET` unless the variables are set in the shell.
+
+The publisher uploads each available artifact to both
+`player-builds/<version>/<platform>/` and `player-builds/latest/<platform>/`.
+Set `PLAYER_BUILD_VERSION` to the version you intend to release, and ensure the
+CMS build version matches it when using version-specific downloads.
 
 Artifacts are separated by platform:
 
